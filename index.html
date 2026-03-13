@@ -280,6 +280,11 @@
     /* gap filler for spanned day with smaller unit rows */
     .slot.s-gap { background: transparent; border: none; pointer-events: none; cursor: default; }
     .slot.s-gap:hover { transform: none; box-shadow: none; }
+    /* Lunch break */
+    .slot.s-lunch { background: #fef9c3; border-color: #fde047; color: #854d0e; cursor: default; pointer-events: none; }
+    .slot.s-lunch:hover { transform: none; box-shadow: none; }
+    .pub-slot.s-lunch { background: #fef9c3; border-color: #fde047; color: #854d0e; cursor: default; pointer-events: none; }
+    .ldot.lunch { background: #fef9c3; border-color: #fde047; }
 
     .slot-num   { font-size: 20px; font-weight: 800; line-height: 1; }
     .slot-cap   { font-size: 10px; opacity: 0.6; }
@@ -305,17 +310,25 @@
     /* ── Resize Handle ── */
     .resize-handle {
       position: absolute;
-      bottom: 3px; left: 18%; right: 18%;
-      height: 5px;
+      bottom: 0; left: 0; right: 0;
+      height: 14px;
       cursor: ns-resize;
-      background: rgba(0,0,0,0.13);
-      border-radius: 3px;
-      transition: background 0.15s, height 0.1s;
       z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .resize-handle:hover { background: rgba(0,0,0,0.32); height: 6px; }
+    .resize-handle::before {
+      content: '';
+      width: 36px; height: 4px;
+      background: rgba(0,0,0,0.15);
+      border-radius: 2px;
+      transition: background 0.15s, width 0.12s;
+    }
+    .resize-handle:hover::before { background: #3b82f6; width: 44px; }
     body.slot-resizing { cursor: ns-resize !important; user-select: none !important; }
     body.slot-resizing .slot { transition: none !important; }
+    body.slot-resizing .resize-handle::before { background: #3b82f6; }
 
     /* ── Public Slot ── */
     .pub-slot {
@@ -578,6 +591,13 @@
       <select class="ctrl-select" id="startHourSelect"></select>
       <label>종료:</label>
       <select class="ctrl-select" id="endHourSelect"></select>
+      <span class="settings-sep">|</span>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="checkbox" id="lunchEnabledCheck" style="width:14px;height:14px;cursor:pointer;" /> 🍽 점심:
+      </label>
+      <select class="ctrl-select" id="lunchStartSelect"></select>
+      <span style="font-size:12px;color:#94a3b8;">~</span>
+      <select class="ctrl-select" id="lunchEndSelect"></select>
     </div>
   </div>
 
@@ -596,7 +616,8 @@
         <div class="legend-item"><div class="ldot partial"></div> 일부 예약됨</div>
         <div class="legend-item"><div class="ldot blocked-a"></div> 전체 마감</div>
         <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
-        <div class="legend-hint">슬롯 클릭 → 예약 +1 &nbsp;|&nbsp; ✎ → 셀 용량 변경 &nbsp;|&nbsp; ⚙ → 날짜별 설정 &nbsp;|&nbsp; 🏖 → 휴일 토글 &nbsp;|&nbsp; ↕ 하단 핸들 드래그 → 슬롯 크기 조절</div>
+        <div class="legend-item"><div class="ldot lunch"></div> 점심시간</div>
+        <div class="legend-hint">클릭 → 예약 +1 &nbsp;|&nbsp; 더블클릭 → 초기화 &nbsp;|&nbsp; ✎ → 용량 변경 &nbsp;|&nbsp; ⚙ → 날짜 설정 &nbsp;|&nbsp; 🏖 → 휴일 &nbsp;|&nbsp; ↕ 핸들 드래그 → 크기 조절</div>
       </div>
     </div>
     <div id="publicView" class="schedule-wrapper" style="display:none;">
@@ -606,6 +627,7 @@
         <div class="legend-item"><div class="ldot partial"></div> 일부 가능</div>
         <div class="legend-item"><div class="ldot blocked-p"></div> 예약 불가</div>
         <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
+        <div class="legend-item"><div class="ldot lunch"></div> 점심시간</div>
       </div>
     </div>
   </div>
@@ -652,6 +674,20 @@
         <div class="form-row">
           <label>기본 통역사 수 (이 날)</label>
           <input type="number" id="dayCapInput" min="1" max="20" placeholder="전역 기본값 사용" />
+          <div class="form-hint">비워두면 전역 기본값을 사용합니다.</div>
+        </div>
+        <div class="form-row">
+          <label>점심시간 (이 날)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
+            <input type="checkbox" id="dayNoLunchCheck" style="width:15px;height:15px;"
+              onchange="document.getElementById('dayLunchTimeRow').style.display=this.checked?'none':'flex';" />
+            점심 없음
+          </label>
+          <div id="dayLunchTimeRow" style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+            <select id="dayLunchStartSelect" class="ctrl-select" style="flex:1;"></select>
+            <span style="color:#94a3b8;">~</span>
+            <select id="dayLunchEndSelect" class="ctrl-select" style="flex:1;"></select>
+          </div>
           <div class="form-hint">비워두면 전역 기본값을 사용합니다.</div>
         </div>
       </div>
@@ -706,9 +742,12 @@
     let dragState       = null;
 
     // Global schedule settings (defaults)
-    let blockMins = parseInt(localStorage.getItem('sc_blockMins')  || '60');
-    let startHour = parseInt(localStorage.getItem('sc_startHour')  || '10');
-    let endHour   = parseInt(localStorage.getItem('sc_endHour')    || '18');
+    let blockMins    = parseInt(localStorage.getItem('sc_blockMins')    || '60');
+    let startHour    = parseInt(localStorage.getItem('sc_startHour')    || '10');
+    let endHour      = parseInt(localStorage.getItem('sc_endHour')      || '18');
+    let lunchEnabled = localStorage.getItem('sc_lunchEnabled') !== 'false';
+    let lunchStart   = parseInt(localStorage.getItem('sc_lunchStart')   || '12');
+    let lunchEnd     = parseInt(localStorage.getItem('sc_lunchEnd')     || '13');
 
     // ─────────────────────────────────────────────
     // Per-day settings helpers
@@ -739,12 +778,21 @@
       return ds.defaultCap || defaultCapacity;
     }
 
+    function getDayLunch(wk, dateISO) {
+      if (!lunchEnabled) return null;
+      const ds = getDaySettings(wk, dateISO);
+      if (ds.noLunch) return null;
+      return { start: ds.lunchStart ?? lunchStart, end: ds.lunchEnd ?? lunchEnd };
+    }
+
     // ─────────────────────────────────────────────
     // Slot Defs (per-day custom duration array)
     // weekData[wk].slotDefs[dateISO] = [60, 90, 30, ...]
     // ─────────────────────────────────────────────
     function getSlotDefs(wk, dateISO) {
-      const totalMins = (endHour - startHour) * 60;
+      const lunch = getDayLunch(wk, dateISO);
+      const lunchMins = lunch ? (lunch.end - lunch.start) * 60 : 0;
+      const totalMins = (endHour - startHour) * 60 - lunchMins;
       const stored = getWeekObj(wk).slotDefs?.[dateISO];
       if (stored && stored.reduce((a, b) => a + b, 0) === totalMins) return [...stored];
       const bMins = getDayBlockMins(wk, dateISO);
@@ -755,7 +803,9 @@
       const obj = getWeekObj(wk);
       if (!obj.slotDefs) obj.slotDefs = {};
       const bMins = getDayBlockMins(wk, dateISO);
-      const totalMins = (endHour - startHour) * 60;
+      const lunch = getDayLunch(wk, dateISO);
+      const lunchMins = lunch ? (lunch.end - lunch.start) * 60 : 0;
+      const totalMins = (endHour - startHour) * 60 - lunchMins;
       const isDefault = defs.length === Math.floor(totalMins / bMins) && defs.every(d => d === bMins);
       if (isDefault) {
         delete obj.slotDefs[dateISO];
@@ -764,18 +814,28 @@
       }
     }
 
-    // Returns [{key, label, startMin, durationMins, slotIdx}, ...]
+    // Returns [{key, label, startMin, durationMins, slotIdx, isLunch?}, ...]
     function getDaySlotsFull(wk, dateISO) {
-      const defs = getSlotDefs(wk, dateISO);
+      const defs  = getSlotDefs(wk, dateISO);
+      const lunch = getDayLunch(wk, dateISO);
+      const lunchStartMin = lunch ? lunch.start * 60 : Infinity;
+      const lunchEndMin   = lunch ? lunch.end   * 60 : 0;
       let curMin = startHour * 60;
-      return defs.map((dur, slotIdx) => {
+      let lunchInserted = false;
+      const result = [];
+      for (let i = 0; i < defs.length; i++) {
+        if (!lunchInserted && curMin >= lunchStartMin) {
+          result.push({ key: 'LUNCH', label: '점심시간', startMin: lunchStartMin, durationMins: lunchEndMin - lunchStartMin, isLunch: true });
+          curMin = lunchEndMin;
+          lunchInserted = true;
+        }
         const h   = Math.floor(curMin / 60);
         const m   = curMin % 60;
         const key = `${String(h).padStart(2,'0')}${String(m).padStart(2,'0')}`;
-        const slot = { key, label: `${h}:${String(m).padStart(2,'0')}`, startMin: curMin, durationMins: dur, slotIdx };
-        curMin += dur;
-        return slot;
-      });
+        result.push({ key, label: `${h}:${String(m).padStart(2,'0')}`, startMin: curMin, durationMins: defs[i], slotIdx: i });
+        curMin += defs[i];
+      }
+      return result;
     }
 
     // ─────────────────────────────────────────────
@@ -876,7 +936,12 @@
       const cap = getCap(wk, di, slotKey, dateISO);
       const k   = sk(di, slotKey);
       const cur = obj.blocked[k] ?? 0;
-      obj.blocked[k] = cur >= cap ? 0 : cur + 1;
+      obj.blocked[k] = Math.min(cur + 1, cap);
+      save();
+    }
+
+    function resetBlock(wk, di, slotKey) {
+      getWeekObj(wk).blocked[sk(di, slotKey)] = 0;
       save();
     }
 
@@ -958,6 +1023,9 @@
         blockMins,
         startHour,
         endHour,
+        lunchEnabled,
+        lunchStart,
+        lunchEnd,
         savedAt: new Date().toISOString()
       };
       const json    = JSON.stringify(state);
@@ -1009,6 +1077,9 @@
         blockMins         = state.blockMins         || 60;
         startHour         = state.startHour         || 10;
         endHour           = state.endHour           || 18;
+        lunchEnabled      = state.lunchEnabled      ?? true;
+        lunchStart        = state.lunchStart        ?? 12;
+        lunchEnd          = state.lunchEnd          ?? 13;
         if (state.savedAt) {
           const d = new Date(state.savedAt);
           document.getElementById('sharedSavedAt').textContent =
@@ -1021,12 +1092,15 @@
     }
 
     function save() {
-      localStorage.setItem('sc_weekData',   JSON.stringify(weekData));
-      localStorage.setItem('sc_defaultCap', String(defaultCapacity));
-      localStorage.setItem('sc_holidays',   JSON.stringify([...holidays]));
-      localStorage.setItem('sc_blockMins',  String(blockMins));
-      localStorage.setItem('sc_startHour',  String(startHour));
-      localStorage.setItem('sc_endHour',    String(endHour));
+      localStorage.setItem('sc_weekData',     JSON.stringify(weekData));
+      localStorage.setItem('sc_defaultCap',   String(defaultCapacity));
+      localStorage.setItem('sc_holidays',     JSON.stringify([...holidays]));
+      localStorage.setItem('sc_blockMins',    String(blockMins));
+      localStorage.setItem('sc_startHour',    String(startHour));
+      localStorage.setItem('sc_endHour',      String(endHour));
+      localStorage.setItem('sc_lunchEnabled', String(lunchEnabled));
+      localStorage.setItem('sc_lunchStart',   String(lunchStart));
+      localStorage.setItem('sc_lunchEnd',     String(lunchEnd));
     }
 
     function slotState(avail, cap) {
@@ -1075,14 +1149,16 @@
         const iso      = fmtISO(date);
         const holiday  = isHoliday(date);
         const ds       = getDaySettings(wk, iso);
-        const hasCust  = !holiday && (ds.blockMins || ds.defaultCap);
+        const hasCust  = !holiday && (ds.blockMins || ds.defaultCap || ds.noLunch || ds.lunchStart || ds.lunchEnd);
         let cls = 'cell-header';
         if (holiday)  cls += ' is-holiday';
         else if (hasCust) cls += ' is-customized';
 
         const hintParts = [];
-        if (ds.blockMins)   hintParts.push(BLOCK_LABELS[ds.blockMins]);
-        if (ds.defaultCap)  hintParts.push(`기본 ${ds.defaultCap}명`);
+        if (ds.blockMins)  hintParts.push(BLOCK_LABELS[ds.blockMins]);
+        if (ds.defaultCap) hintParts.push(`기본 ${ds.defaultCap}명`);
+        if (ds.noLunch)    hintParts.push('점심없음');
+        else if (ds.lunchStart || ds.lunchEnd) hintParts.push(`점심 ${ds.lunchStart ?? lunchStart}:00~${ds.lunchEnd ?? lunchEnd}:00`);
 
         const el = document.createElement('div');
         el.className = cls;
@@ -1126,7 +1202,7 @@
         const holiday  = isHoliday(date);
         const daySlots = getDaySlotsFull(wk, iso);
 
-        daySlots.forEach((slot, slotIdx) => {
+        daySlots.forEach((slot, idx) => {
           const spanRows    = slot.durationMins / BASE_MINS;
           const startRowIdx = (slot.startMin - startHour * 60) / BASE_MINS;
 
@@ -1135,8 +1211,15 @@
           cell.style.gridRow    = `${startRowIdx + 2} / span ${spanRows}`;
 
           if (holiday) {
-            cell.className = slotIdx === 0 ? 'slot s-holiday' : 'slot s-gap';
-            if (slotIdx === 0) cell.innerHTML = `<div class="slot-text">휴일</div>`;
+            cell.className = (idx === 0 && !slot.isLunch) ? 'slot s-holiday' : 'slot s-gap';
+            if (idx === 0 && !slot.isLunch) cell.innerHTML = `<div class="slot-text">휴일</div>`;
+            grid.appendChild(cell);
+            return;
+          }
+
+          if (slot.isLunch) {
+            cell.className = 'slot s-lunch';
+            cell.innerHTML = `<div class="slot-text">🍽 점심시간</div>`;
             grid.appendChild(cell);
             return;
           }
@@ -1145,15 +1228,17 @@
           const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
           const state   = slotState(avail, cap);
-          const isLast  = slotIdx === daySlots.length - 1;
+          const nextSlot   = daySlots[idx + 1];
+          const showHandle = nextSlot && !nextSlot.isLunch;
 
           cell.className = `slot ${state}`;
+          if (state === 's-blocked') cell.title = '더블클릭하여 초기화';
           cell.innerHTML = `
             <button class="edit-btn" title="슬롯 용량 변경">✎</button>
             <div class="slot-num">${avail}</div>
             <div class="slot-cap">/ ${cap} 슬롯</div>
             <div class="slot-text">${state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`}</div>
-            ${!isLast ? '<div class="resize-handle"></div>' : ''}
+            ${showHandle ? '<div class="resize-handle"></div>' : ''}
           `;
 
           cell.addEventListener('click', e => {
@@ -1161,15 +1246,21 @@
             incrementBlock(wk, di, slot.key, iso);
             render();
           });
+          cell.addEventListener('dblclick', e => {
+            if (e.target.classList.contains('edit-btn') || e.target.classList.contains('resize-handle')) return;
+            resetBlock(wk, di, slot.key);
+            render();
+            showToast('슬롯 초기화됨');
+          });
           cell.querySelector('.edit-btn').addEventListener('click', e => {
             e.stopPropagation();
             openModal(wk, di, slot, date);
           });
-          if (!isLast) {
+          if (showHandle) {
             cell.querySelector('.resize-handle').addEventListener('mousedown', e => {
               e.preventDefault();
               e.stopPropagation();
-              startSlotResize(e, wk, di, iso, slotIdx);
+              startSlotResize(e, wk, di, iso, slot.slotIdx);
             });
           }
 
