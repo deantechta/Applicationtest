@@ -307,28 +307,58 @@
     .slot:hover .edit-btn { opacity: 1; }
     .edit-btn:hover { background: rgba(0,0,0,0.18); }
 
-    /* ── Resize Handle ── */
-    .resize-handle {
+    /* ── Resize Handle (bottom & top) ── */
+    .resize-handle, .resize-handle-top {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 14px;
+      left: 0; right: 0;
+      height: 18px;
       cursor: ns-resize;
       z-index: 2;
       display: flex;
       align-items: center;
       justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s;
     }
-    .resize-handle::before {
+    .resize-handle { bottom: 0; border-radius: 0 0 10px 10px; }
+    .resize-handle-top { top: 0; border-radius: 10px 10px 0 0; }
+    .slot:hover .resize-handle,
+    .slot:hover .resize-handle-top { opacity: 1; }
+    .resize-handle::before, .resize-handle-top::before {
       content: '';
-      width: 36px; height: 4px;
-      background: rgba(0,0,0,0.15);
-      border-radius: 2px;
-      transition: background 0.15s, width 0.12s;
+      width: 40px; height: 5px;
+      background: rgba(59,130,246,0.35);
+      border-radius: 3px;
+      transition: background 0.15s, width 0.12s, height 0.12s;
     }
-    .resize-handle:hover::before { background: #3b82f6; width: 44px; }
+    .resize-handle:hover::before, .resize-handle-top:hover::before {
+      background: #3b82f6;
+      width: 52px;
+      height: 6px;
+    }
     body.slot-resizing { cursor: ns-resize !important; user-select: none !important; }
     body.slot-resizing .slot { transition: none !important; }
-    body.slot-resizing .resize-handle::before { background: #3b82f6; }
+    body.slot-resizing .resize-handle,
+    body.slot-resizing .resize-handle-top { opacity: 1; }
+    body.slot-resizing .resize-handle::before,
+    body.slot-resizing .resize-handle-top::before { background: #3b82f6; }
+
+    /* ── Resize floating label ── */
+    .resize-label {
+      position: fixed;
+      background: #1e40af;
+      color: white;
+      padding: 4px 11px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .resize-label.hidden { display: none; }
 
     /* ── Public Slot ── */
     .pub-slot {
@@ -595,9 +625,11 @@
       <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
         <input type="checkbox" id="lunchEnabledCheck" style="width:14px;height:14px;cursor:pointer;" /> 🍽 점심:
       </label>
-      <select class="ctrl-select" id="lunchStartSelect"></select>
-      <span style="font-size:12px;color:#94a3b8;">~</span>
-      <select class="ctrl-select" id="lunchEndSelect"></select>
+      <div id="lunchTimeControls" style="display:flex;align-items:center;gap:6px;">
+        <select class="ctrl-select" id="lunchStartSelect"></select>
+        <span style="font-size:12px;color:#94a3b8;">~</span>
+        <select class="ctrl-select" id="lunchEndSelect"></select>
+      </div>
     </div>
   </div>
 
@@ -617,7 +649,7 @@
         <div class="legend-item"><div class="ldot blocked-a"></div> 전체 마감</div>
         <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
         <div class="legend-item"><div class="ldot lunch"></div> 점심시간</div>
-        <div class="legend-hint">클릭 → 예약 +1 &nbsp;|&nbsp; 더블클릭 → 초기화 &nbsp;|&nbsp; ✎ → 용량 변경 &nbsp;|&nbsp; ⚙ → 날짜 설정 &nbsp;|&nbsp; 🏖 → 휴일 &nbsp;|&nbsp; ↕ 핸들 드래그 → 크기 조절</div>
+        <div class="legend-hint">클릭 → 예약 +1 &nbsp;|&nbsp; 더블클릭 → 초기화 &nbsp;|&nbsp; ✎ → 용량 변경 &nbsp;|&nbsp; ⚙ → 날짜 설정 &nbsp;|&nbsp; 🏖 → 휴일 &nbsp;|&nbsp; ↕ 상단/하단 핸들 드래그 → 크기 조절</div>
       </div>
     </div>
     <div id="publicView" class="schedule-wrapper" style="display:none;">
@@ -719,6 +751,8 @@
   <div class="export-loading hidden" id="exportLoading">이미지 생성 중...</div>
   <!-- Toast -->
   <div class="toast" id="toast"></div>
+  <!-- Resize floating label -->
+  <div class="resize-label hidden" id="resizeLabel"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
@@ -958,7 +992,7 @@
     // ─────────────────────────────────────────────
     // Slot Resize (drag handle)
     // ─────────────────────────────────────────────
-    function startSlotResize(e, wk, di, dateISO, slotIdx) {
+    function startSlotResize(e, wk, di, dateISO, slotIdx, direction = 'bottom') {
       const cell        = e.target.closest('.slot');
       const cellRect    = cell.getBoundingClientRect();
       const defs        = getSlotDefs(wk, dateISO);
@@ -966,6 +1000,7 @@
 
       dragState = {
         wk, di, dateISO, slotIdx,
+        direction,
         startY:       e.clientY,
         origDefs:     [...defs],
         rowHeightPx,
@@ -976,38 +1011,62 @@
 
     function onResizeDrag(e) {
       if (!dragState) return;
-      const { wk, dateISO, slotIdx, startY, origDefs, rowHeightPx } = dragState;
+      const { wk, dateISO, slotIdx, startY, origDefs, rowHeightPx, direction } = dragState;
 
-      const deltaY      = e.clientY - startY;
-      const snapUnits   = Math.round(deltaY / rowHeightPx);
-      const snapMins    = snapUnits * BASE_MINS;
+      const deltaY    = e.clientY - startY;
+      const snapUnits = Math.round(deltaY / rowHeightPx);
+      const snapMins  = snapUnits * BASE_MINS;
       if (snapMins === dragState.lastSnapDelta) return;
       dragState.lastSnapDelta = snapMins;
 
-      const nextIdx = slotIdx + 1;
-      if (nextIdx >= origDefs.length) return;
-
-      let newCur  = origDefs[slotIdx] + snapMins;
-      let newNext = origDefs[nextIdx] - snapMins;
-
-      if (newCur < BASE_MINS)  { newNext = origDefs[slotIdx] + origDefs[nextIdx] - BASE_MINS; newCur  = BASE_MINS; }
-      if (newNext < BASE_MINS) { newCur  = origDefs[slotIdx] + origDefs[nextIdx] - BASE_MINS; newNext = BASE_MINS; }
-
       const newDefs = [...origDefs];
-      newDefs[slotIdx]  = newCur;
-      newDefs[nextIdx]  = newNext;
+      let labelA = -1, labelB = -1;
+
+      if (direction === 'bottom') {
+        const nextIdx = slotIdx + 1;
+        if (nextIdx >= origDefs.length) return;
+        let newCur  = origDefs[slotIdx] + snapMins;
+        let newNext = origDefs[nextIdx] - snapMins;
+        if (newCur  < BASE_MINS) { newNext = origDefs[slotIdx] + origDefs[nextIdx] - BASE_MINS; newCur  = BASE_MINS; }
+        if (newNext < BASE_MINS) { newCur  = origDefs[slotIdx] + origDefs[nextIdx] - BASE_MINS; newNext = BASE_MINS; }
+        newDefs[slotIdx] = newCur;
+        newDefs[nextIdx] = newNext;
+        labelA = slotIdx; labelB = nextIdx;
+      } else {
+        const prevIdx = slotIdx - 1;
+        if (prevIdx < 0) return;
+        let newPrev = origDefs[prevIdx] + snapMins;
+        let newCur  = origDefs[slotIdx] - snapMins;
+        if (newPrev < BASE_MINS) { newCur  = origDefs[prevIdx] + origDefs[slotIdx] - BASE_MINS; newPrev = BASE_MINS; }
+        if (newCur  < BASE_MINS) { newPrev = origDefs[prevIdx] + origDefs[slotIdx] - BASE_MINS; newCur  = BASE_MINS; }
+        newDefs[prevIdx] = newPrev;
+        newDefs[slotIdx] = newCur;
+        labelA = prevIdx; labelB = slotIdx;
+      }
 
       setSlotDefs(wk, dateISO, newDefs);
       renderAdminGrid(getWeekKey(currentWeek), getWeekDates(currentWeek));
+
+      // Update floating label
+      const labelEl = document.getElementById('resizeLabel');
+      if (labelA >= 0 && labelB < newDefs.length) {
+        const fmt = m => BLOCK_LABELS[m] || `${m}분`;
+        labelEl.textContent = `${fmt(newDefs[labelA])} / ${fmt(newDefs[labelB])}`;
+        labelEl.style.left = `${e.clientX}px`;
+        labelEl.style.top  = `${e.clientY - 38}px`;
+        labelEl.classList.remove('hidden');
+      }
     }
 
     function endSlotResize() {
       if (!dragState) return;
       document.body.classList.remove('slot-resizing');
+      document.getElementById('resizeLabel').classList.add('hidden');
       save();
       renderPublicGrid(getWeekKey(currentWeek), getWeekDates(currentWeek));
-      const defs = getSlotDefs(dragState.wk, dragState.dateISO);
-      const cur  = defs[dragState.slotIdx];
+      const defs     = getSlotDefs(dragState.wk, dragState.dateISO);
+      const showIdx  = dragState.direction === 'top' ? dragState.slotIdx - 1 : dragState.slotIdx;
+      const cur      = defs[Math.max(0, showIdx)];
       showToast(`슬롯 크기 조정: ${BLOCK_LABELS[cur] || cur + '분'}`);
       dragState = null;
     }
@@ -1228,12 +1287,15 @@
           const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
           const state   = slotState(avail, cap);
-          const nextSlot   = daySlots[idx + 1];
-          const showHandle = nextSlot && !nextSlot.isLunch;
+          const prevSlot      = idx > 0 ? daySlots[idx - 1] : null;
+          const nextSlot      = daySlots[idx + 1];
+          const showHandle    = nextSlot && !nextSlot.isLunch;
+          const showTopHandle = prevSlot && !prevSlot.isLunch;
 
           cell.className = `slot ${state}`;
           if (state === 's-blocked') cell.title = '더블클릭하여 초기화';
           cell.innerHTML = `
+            ${showTopHandle ? '<div class="resize-handle-top"></div>' : ''}
             <button class="edit-btn" title="슬롯 용량 변경">✎</button>
             <div class="slot-num">${avail}</div>
             <div class="slot-cap">/ ${cap} 슬롯</div>
@@ -1242,12 +1304,12 @@
           `;
 
           cell.addEventListener('click', e => {
-            if (e.target.classList.contains('edit-btn') || e.target.classList.contains('resize-handle')) return;
+            if (e.target.closest('.edit-btn') || e.target.closest('.resize-handle') || e.target.closest('.resize-handle-top')) return;
             incrementBlock(wk, di, slot.key, iso);
             render();
           });
           cell.addEventListener('dblclick', e => {
-            if (e.target.classList.contains('edit-btn') || e.target.classList.contains('resize-handle')) return;
+            if (e.target.closest('.edit-btn') || e.target.closest('.resize-handle') || e.target.closest('.resize-handle-top')) return;
             resetBlock(wk, di, slot.key);
             render();
             showToast('슬롯 초기화됨');
@@ -1260,7 +1322,14 @@
             cell.querySelector('.resize-handle').addEventListener('mousedown', e => {
               e.preventDefault();
               e.stopPropagation();
-              startSlotResize(e, wk, di, iso, slot.slotIdx);
+              startSlotResize(e, wk, di, iso, slot.slotIdx, 'bottom');
+            });
+          }
+          if (showTopHandle) {
+            cell.querySelector('.resize-handle-top').addEventListener('mousedown', e => {
+              e.preventDefault();
+              e.stopPropagation();
+              startSlotResize(e, wk, di, iso, slot.slotIdx, 'top');
             });
           }
 
@@ -1393,6 +1462,27 @@
       capIn.value = ds.defaultCap ? String(ds.defaultCap) : '';
       capIn.placeholder = `전역 기본값 (${defaultCapacity}명)`;
 
+      // Populate and set day lunch selects
+      const dlss = document.getElementById('dayLunchStartSelect');
+      const dlse = document.getElementById('dayLunchEndSelect');
+      dlss.innerHTML = '';
+      dlse.innerHTML = '';
+      for (let h = 9; h <= 17; h++) {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = `${h}:00`;
+        dlss.appendChild(opt);
+      }
+      for (let h = 10; h <= 18; h++) {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = `${h}:00`;
+        dlse.appendChild(opt);
+      }
+      const noLunchChk = document.getElementById('dayNoLunchCheck');
+      noLunchChk.checked = !!ds.noLunch;
+      dlss.value = String(ds.lunchStart ?? lunchStart);
+      dlse.value = String(ds.lunchEnd   ?? lunchEnd);
+      document.getElementById('dayLunchTimeRow').style.display = noLunchChk.checked ? 'none' : 'flex';
+
       document.getElementById('dayModalOverlay').classList.remove('hidden');
     }
 
@@ -1414,9 +1504,19 @@
         return;
       }
 
+      const noLunch  = document.getElementById('dayNoLunchCheck').checked;
+      const dlssVal  = parseInt(document.getElementById('dayLunchStartSelect').value);
+      const dlseVal  = parseInt(document.getElementById('dayLunchEndSelect').value);
+
       const settings = {};
       if (bVal) settings.blockMins = parseInt(bVal);
       if (cVal !== null) settings.defaultCap = cVal;
+      if (noLunch) {
+        settings.noLunch = true;
+      } else if (!isNaN(dlssVal) && !isNaN(dlseVal) && dlssVal < dlseVal) {
+        if (dlssVal !== lunchStart) settings.lunchStart = dlssVal;
+        if (dlseVal  !== lunchEnd)  settings.lunchEnd   = dlseVal;
+      }
 
       setDaySettings(wk, iso, Object.keys(settings).length ? settings : null);
       closeDayModal();
@@ -1646,6 +1746,24 @@
         if (h === endHour) opt.selected = true;
         endSel.appendChild(opt);
       }
+
+      // Lunch time selects
+      const lunchStartSel = document.getElementById('lunchStartSelect');
+      const lunchEndSel   = document.getElementById('lunchEndSelect');
+      for (let h = 9; h <= 17; h++) {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = `${h}:00`;
+        if (h === lunchStart) opt.selected = true;
+        lunchStartSel.appendChild(opt);
+      }
+      for (let h = 10; h <= 18; h++) {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = `${h}:00`;
+        if (h === lunchEnd) opt.selected = true;
+        lunchEndSel.appendChild(opt);
+      }
+      document.getElementById('lunchEnabledCheck').checked = lunchEnabled;
+      document.getElementById('lunchTimeControls').style.display = lunchEnabled ? 'flex' : 'none';
     }
 
     // ─────────────────────────────────────────────
@@ -1684,6 +1802,27 @@
       const v = parseInt(e.target.value);
       if (v <= startHour) { showToast('종료 시간은 시작 시간보다 뒤여야 합니다.'); e.target.value = String(endHour); return; }
       endHour = v; save(); render();
+    });
+
+    document.getElementById('lunchEnabledCheck').addEventListener('change', e => {
+      lunchEnabled = e.target.checked;
+      document.getElementById('lunchTimeControls').style.display = lunchEnabled ? 'flex' : 'none';
+      save(); render();
+      showToast(lunchEnabled ? '점심시간 활성화' : '점심시간 비활성화');
+    });
+
+    document.getElementById('lunchStartSelect').addEventListener('change', e => {
+      const v = parseInt(e.target.value);
+      if (v >= lunchEnd) { showToast('점심 시작은 종료보다 앞이어야 합니다.'); e.target.value = String(lunchStart); return; }
+      lunchStart = v; save(); render();
+      showToast(`점심 시작: ${v}:00`);
+    });
+
+    document.getElementById('lunchEndSelect').addEventListener('change', e => {
+      const v = parseInt(e.target.value);
+      if (v <= lunchStart) { showToast('점심 종료는 시작보다 뒤여야 합니다.'); e.target.value = String(lunchEnd); return; }
+      lunchEnd = v; save(); render();
+      showToast(`점심 종료: ${v}:00`);
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
