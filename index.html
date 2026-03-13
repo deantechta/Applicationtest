@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>통역 서비스 스케줄러</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #eef2f7;
+      color: #1a202c;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      background: linear-gradient(135deg, #1a365d 0%, #2d6a9f 100%);
+      color: white;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      flex-shrink: 0;
+    }
+    .app-header h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+    .app-header .subtitle { font-size: 12px; opacity: 0.7; margin-top: 3px; }
+
+    /* ── Controls Bar ── */
+    .controls-bar {
+      background: white;
+      padding: 12px 28px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      flex-shrink: 0;
+    }
+
+    .week-nav { display: flex; align-items: center; gap: 10px; }
+    .nav-btn {
+      width: 34px; height: 34px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      color: #4a5568;
+    }
+    .nav-btn:hover { background: #eef2f7; border-color: #cbd5e0; }
+
+    .week-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+      min-width: 260px;
+      text-align: center;
+    }
+
+    .capacity-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #4a5568;
+    }
+    .capacity-control label { white-space: nowrap; font-weight: 500; }
+
+    .capacity-input-group {
+      display: flex;
+      align-items: center;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .cap-btn {
+      width: 30px; height: 30px;
+      border: none;
+      background: #f7fafc;
+      cursor: pointer;
+      font-size: 16px;
+      color: #4a5568;
+      transition: background 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cap-btn:hover { background: #e2e8f0; }
+    .cap-value {
+      width: 38px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #2d3748;
+      border-left: 1px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+      line-height: 30px;
+    }
+    .cap-hint { font-size: 11px; color: #94a3b8; }
+
+    /* ── Tab Bar ── */
+    .tab-bar {
+      background: white;
+      border-bottom: 2px solid #e2e8f0;
+      padding: 0 28px;
+      display: flex;
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      padding: 11px 22px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #718096;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { color: #2d6a9f; }
+    .tab-btn.active { color: #1a365d; border-bottom-color: #1a365d; font-weight: 700; }
+
+    /* ── Main Content ── */
+    .main-content {
+      padding: 24px 28px;
+      overflow-x: auto;
+      flex: 1;
+    }
+
+    .schedule-wrapper {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      display: inline-block;
+      min-width: 100%;
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: 80px repeat(5, 1fr);
+      gap: 5px;
+    }
+
+    .cell-header {
+      padding: 10px 6px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 13px;
+      color: #4a5568;
+      background: #f7fafc;
+      border-radius: 8px;
+    }
+    .cell-header .day-name { font-size: 15px; font-weight: 700; color: #2d3748; }
+    .cell-header .day-date { font-size: 11px; color: #718096; margin-top: 2px; }
+
+    .time-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #718096;
+    }
+
+    /* ── Admin Slot ── */
+    .slot {
+      position: relative;
+      padding: 8px 6px;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s, box-shadow 0.12s;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      border: 2px solid transparent;
+    }
+    .slot:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .slot:active { transform: translateY(0); }
+
+    .slot.s-available { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+    .slot.s-partial   { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+    .slot.s-blocked   { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+
+    .slot-num   { font-size: 24px; font-weight: 800; line-height: 1; }
+    .slot-cap   { font-size: 10px; opacity: 0.6; }
+    .slot-text  { font-size: 10px; font-weight: 600; margin-top: 1px; }
+
+    .edit-btn {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 18px; height: 18px;
+      background: rgba(0,0,0,0.08);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s;
+      color: inherit;
+    }
+    .slot:hover .edit-btn { opacity: 1; }
+    .edit-btn:hover { background: rgba(0,0,0,0.18); }
+
+    /* ── Public Slot ── */
+    .pub-slot {
+      padding: 8px 6px;
+      border-radius: 10px;
+      text-align: center;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border: 2px solid transparent;
+    }
+    .pub-slot.s-available { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+    .pub-slot.s-partial   { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+    .pub-slot.s-blocked   { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
+
+    .pub-icon  { font-size: 20px; line-height: 1; }
+    .pub-count { font-size: 13px; font-weight: 700; }
+    .pub-text  { font-size: 10px; }
+
+    /* ── Legend ── */
+    .legend {
+      margin-top: 16px;
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 12px;
+      color: #4a5568;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .ldot {
+      width: 13px; height: 13px;
+      border-radius: 3px;
+      border: 2px solid;
+      flex-shrink: 0;
+    }
+    .ldot.available { background: #f0fdf4; border-color: #bbf7d0; }
+    .ldot.partial   { background: #fff7ed; border-color: #fed7aa; }
+    .ldot.blocked-a { background: #fef2f2; border-color: #fecaca; }
+    .ldot.blocked-p { background: #f8fafc;  border-color: #e2e8f0; }
+    .legend-hint { font-size: 11px; color: #94a3b8; margin-left: auto; }
+
+    /* ── Action Bar ── */
+    .action-bar {
+      background: white;
+      border-top: 1px solid #e2e8f0;
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      position: sticky;
+      bottom: 0;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+    }
+
+    .btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .btn-navy   { background: #1a365d; color: white; }
+    .btn-navy:hover   { background: #153056; box-shadow: 0 2px 8px rgba(26,54,93,0.3); }
+    .btn-green  { background: #15803d; color: white; }
+    .btn-green:hover  { background: #126933; box-shadow: 0 2px 8px rgba(21,128,61,0.3); }
+    .btn-red    { background: #dc2626; color: white; }
+    .btn-red:hover    { background: #b91c1c; }
+    .btn-ghost  { background: #f7fafc; color: #4a5568; border: 1px solid #e2e8f0; }
+    .btn-ghost:hover  { background: #eef2f7; }
+    .action-spacer { flex: 1; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-overlay.hidden { display: none; }
+
+    .modal-box {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      width: 340px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-box h3 { font-size: 17px; margin-bottom: 6px; color: #1a202c; }
+    .modal-desc { font-size: 13px; color: #718096; margin-bottom: 20px; line-height: 1.5; }
+    .modal-box input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 9px;
+      font-size: 22px;
+      text-align: center;
+      margin-bottom: 20px;
+      outline: none;
+      font-weight: 700;
+      color: #2d3748;
+      transition: border-color 0.15s;
+    }
+    .modal-box input:focus { border-color: #2d6a9f; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 72px; right: 28px;
+      background: #1a202c;
+      color: white;
+      padding: 11px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 9000;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Export loading overlay ── */
+    .export-loading {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 8000;
+      font-size: 16px; font-weight: 600; color: #1a365d;
+    }
+    .export-loading.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div>
+      <h1>통역 서비스 스케줄러</h1>
+      <div class="subtitle">관리자용 주간 스케줄 관리 · 클릭으로 블록 설정 · PNG 이미지 출력</div>
+    </div>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="week-nav">
+      <button class="nav-btn" id="prevWeek" title="이전 주">&#9664;</button>
+      <div class="week-label" id="weekLabel"></div>
+      <button class="nav-btn" id="nextWeek" title="다음 주">&#9654;</button>
+    </div>
+    <div class="capacity-control">
+      <label>기본 통역사 수:</label>
+      <div class="capacity-input-group">
+        <button class="cap-btn" id="capMinus">−</button>
+        <div class="cap-value" id="capDisplay">2</div>
+        <button class="cap-btn" id="capPlus">+</button>
+      </div>
+      <span class="cap-hint">명 (슬롯 기본값 · ✎ 버튼으로 셀 개별 설정 가능)</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="admin" id="tabAdmin">🔧 관리자 편집 뷰</button>
+    <button class="tab-btn" data-tab="public" id="tabPublic">👥 공개 미리보기</button>
+  </div>
+
+  <!-- Grid -->
+  <div class="main-content">
+    <div id="adminView" class="schedule-wrapper">
+      <div class="grid" id="adminGrid"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="ldot available"></div> 전체 가능</div>
+        <div class="legend-item"><div class="ldot partial"></div> 일부 예약됨</div>
+        <div class="legend-item"><div class="ldot blocked-a"></div> 전체 마감</div>
+        <div class="legend-hint">슬롯 클릭 → 예약 블록 +1 (최대 도달 시 초기화) &nbsp;|&nbsp; ✎ → 셀 용량 개별 설정</div>
+      </div>
+    </div>
+
+    <div id="publicView" class="schedule-wrapper" style="display:none;">
+      <div class="grid" id="publicGrid"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="ldot available"></div> 예약 가능</div>
+        <div class="legend-item"><div class="ldot partial"></div> 일부 가능</div>
+        <div class="legend-item"><div class="ldot blocked-p"></div> 예약 불가</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-navy" id="exportAdmin">📷 관리자 뷰 이미지 저장</button>
+    <button class="btn btn-green" id="exportPublic">📷 공개 뷰 이미지 저장</button>
+    <div class="action-spacer"></div>
+    <button class="btn btn-red" id="resetWeek">🗑 이번 주 초기화</button>
+  </div>
+
+  <!-- Capacity Modal -->
+  <div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal-box">
+      <h3>슬롯 용량 변경</h3>
+      <div class="modal-desc" id="modalDesc"></div>
+      <input type="number" id="modalInput" min="1" max="20" />
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modalCancel">취소</button>
+        <button class="btn btn-navy" id="modalConfirm">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Loading -->
+  <div class="export-loading hidden" id="exportLoading">이미지 생성 중...</div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    // ─────────────────────────────────────────────
+    // Constants
+    // ─────────────────────────────────────────────
+    const DAYS_KO = ['월', '화', '수', '목', '금'];
+    const HOURS    = [10, 11, 12, 13, 14, 15, 16, 17, 18];
+
+    // ─────────────────────────────────────────────
+    // State
+    // ─────────────────────────────────────────────
+    let currentWeek      = getMonday(new Date());
+    let defaultCapacity  = parseInt(localStorage.getItem('sc_defaultCap') || '2');
+    let weekData         = JSON.parse(localStorage.getItem('sc_weekData') || '{}');
+    let activeTab        = 'admin';
+    let pendingModal     = null;
+
+    // ─────────────────────────────────────────────
+    // Date helpers
+    // ─────────────────────────────────────────────
+    function getMonday(date) {
+      const d   = new Date(date);
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function getWeekKey(date) {
+      return date.toISOString().slice(0, 10);
+    }
+
+    function getWeekDates(monday) {
+      return Array.from({ length: 5 }, (_, i) => {
+        const d = new Date(monday);
+        d.setDate(d.getDate() + i);
+        return d;
+      });
+    }
+
+    function fmt(d)        { return `${d.getMonth()+1}/${d.getDate()}`; }
+    function fmtFull(d)    { return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`; }
+    function pad(n)        { return String(n).padStart(2, '0'); }
+
+    function weekRangeLabel(dates) {
+      const s = dates[0], e = dates[4];
+      return `${s.getFullYear()}년 ${s.getMonth()+1}월 ${s.getDate()}일 (월) ~ ${e.getMonth()+1}월 ${e.getDate()}일 (금)`;
+    }
+
+    /** 파일명용 주간 문자열: 2026.03.16~03.20 */
+    function weekRangeFilename(dates) {
+      const s = dates[0], e = dates[4];
+      return `${fmtFull(s)}~${pad(e.getMonth()+1)}.${pad(e.getDate())}`;
+    }
+
+    // ─────────────────────────────────────────────
+    // Data access
+    // ─────────────────────────────────────────────
+    function getWeekObj(wk) {
+      if (!weekData[wk]) weekData[wk] = { capacity: {}, blocked: {} };
+      return weekData[wk];
+    }
+
+    function sk(d, h) { return `${d}-${h}`; }
+
+    function getCap(wk, d, h) {
+      return getWeekObj(wk).capacity[sk(d, h)] ?? defaultCapacity;
+    }
+
+    function getBlocked(wk, d, h) {
+      return getWeekObj(wk).blocked[sk(d, h)] ?? 0;
+    }
+
+    function incrementBlock(wk, d, h) {
+      const obj = getWeekObj(wk);
+      const cap = getCap(wk, d, h);
+      const k   = sk(d, h);
+      const cur = obj.blocked[k] ?? 0;
+      obj.blocked[k] = cur >= cap ? 0 : cur + 1;
+      save();
+    }
+
+    function setCapacity(wk, d, h, val) {
+      const obj = getWeekObj(wk);
+      const k   = sk(d, h);
+      obj.capacity[k] = val;
+      if ((obj.blocked[k] ?? 0) > val) obj.blocked[k] = val;
+      save();
+    }
+
+    function resetWeekData(wk) {
+      delete weekData[wk];
+      save();
+    }
+
+    function save() {
+      localStorage.setItem('sc_weekData',    JSON.stringify(weekData));
+      localStorage.setItem('sc_defaultCap',  String(defaultCapacity));
+    }
+
+    function slotState(avail, cap) {
+      if (avail === cap)  return 's-available';
+      if (avail === 0)    return 's-blocked';
+      return 's-partial';
+    }
+
+    // ─────────────────────────────────────────────
+    // Render
+    // ─────────────────────────────────────────────
+    function render() {
+      const wk    = getWeekKey(currentWeek);
+      const dates = getWeekDates(currentWeek);
+
+      document.getElementById('weekLabel').textContent  = weekRangeLabel(dates);
+      document.getElementById('capDisplay').textContent = defaultCapacity;
+
+      renderAdminGrid(wk, dates);
+      renderPublicGrid(wk, dates);
+    }
+
+    function renderAdminGrid(wk, dates) {
+      const grid = document.getElementById('adminGrid');
+      grid.innerHTML = '';
+
+      // corner
+      const corner = document.createElement('div');
+      corner.className = 'cell-header';
+      corner.style.display = 'flex';
+      corner.style.alignItems = 'center';
+      corner.style.justifyContent = 'center';
+      corner.textContent = '시간';
+      grid.appendChild(corner);
+
+      // day headers
+      dates.forEach((date, i) => {
+        const el = document.createElement('div');
+        el.className = 'cell-header';
+        el.innerHTML = `<div class="day-name">${DAYS_KO[i]}</div><div class="day-date">${fmt(date)}</div>`;
+        grid.appendChild(el);
+      });
+
+      // rows
+      HOURS.forEach(hour => {
+        const tl = document.createElement('div');
+        tl.className = 'time-cell';
+        tl.textContent = `${hour}:00`;
+        grid.appendChild(tl);
+
+        dates.forEach((_, di) => {
+          const cap     = getCap(wk, di, hour);
+          const blocked = getBlocked(wk, di, hour);
+          const avail   = Math.max(0, cap - blocked);
+          const state   = slotState(avail, cap);
+
+          const cell = document.createElement('div');
+          cell.className = `slot ${state}`;
+          cell.innerHTML = `
+            <button class="edit-btn" title="슬롯 용량 변경">✎</button>
+            <div class="slot-num">${avail}</div>
+            <div class="slot-cap">/ ${cap} 슬롯</div>
+            <div class="slot-text">${state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`}</div>
+          `;
+
+          cell.addEventListener('click', e => {
+            if (e.target.classList.contains('edit-btn')) return;
+            incrementBlock(wk, di, hour);
+            render();
+          });
+
+          cell.querySelector('.edit-btn').addEventListener('click', e => {
+            e.stopPropagation();
+            openModal(wk, di, hour, dates[di]);
+          });
+
+          grid.appendChild(cell);
+        });
+      });
+    }
+
+    function renderPublicGrid(wk, dates) {
+      const grid = document.getElementById('publicGrid');
+      grid.innerHTML = '';
+
+      const corner = document.createElement('div');
+      corner.className = 'cell-header';
+      corner.style.display = 'flex';
+      corner.style.alignItems = 'center';
+      corner.style.justifyContent = 'center';
+      corner.textContent = '시간';
+      grid.appendChild(corner);
+
+      dates.forEach((date, i) => {
+        const el = document.createElement('div');
+        el.className = 'cell-header';
+        el.innerHTML = `<div class="day-name">${DAYS_KO[i]}</div><div class="day-date">${fmt(date)}</div>`;
+        grid.appendChild(el);
+      });
+
+      HOURS.forEach(hour => {
+        const tl = document.createElement('div');
+        tl.className = 'time-cell';
+        tl.textContent = `${hour}:00`;
+        grid.appendChild(tl);
+
+        dates.forEach((_, di) => {
+          const cap    = getCap(wk, di, hour);
+          const blocked = getBlocked(wk, di, hour);
+          const avail  = Math.max(0, cap - blocked);
+          const state  = slotState(avail, cap);
+
+          const cell = document.createElement('div');
+          cell.className = `pub-slot ${state}`;
+
+          if (state === 's-blocked') {
+            cell.innerHTML = `<div class="pub-icon">✕</div><div class="pub-text">예약 불가</div>`;
+          } else {
+            cell.innerHTML = `
+              <div class="pub-icon">✓</div>
+              <div class="pub-count">${avail}자리</div>
+              <div class="pub-text">예약 가능</div>
+            `;
+          }
+          grid.appendChild(cell);
+        });
+      });
+    }
+
+    // ─────────────────────────────────────────────
+    // Modal
+    // ─────────────────────────────────────────────
+    function openModal(wk, di, hour, date) {
+      pendingModal = { wk, di, hour };
+      const cap = getCap(wk, di, hour);
+      document.getElementById('modalDesc').innerHTML =
+        `<strong>${fmt(date)} (${DAYS_KO[di]}) ${hour}:00</strong> 슬롯의 통역사 수를 설정합니다.<br>현재: ${cap}명`;
+      document.getElementById('modalInput').value = cap;
+      document.getElementById('modalOverlay').classList.remove('hidden');
+      setTimeout(() => document.getElementById('modalInput').select(), 60);
+    }
+
+    function closeModal() {
+      pendingModal = null;
+      document.getElementById('modalOverlay').classList.add('hidden');
+    }
+
+    function confirmModal() {
+      if (!pendingModal) return;
+      const val = parseInt(document.getElementById('modalInput').value);
+      if (isNaN(val) || val < 1 || val > 20) {
+        showToast('1~20 사이의 숫자를 입력해주세요.');
+        return;
+      }
+      setCapacity(pendingModal.wk, pendingModal.di, pendingModal.hour, val);
+      closeModal();
+      render();
+      showToast('슬롯 용량이 변경되었습니다.');
+    }
+
+    // ─────────────────────────────────────────────
+    // Export
+    // ─────────────────────────────────────────────
+    async function exportImage(type) {
+      const wk    = getWeekKey(currentWeek);
+      const dates = getWeekDates(currentWeek);
+
+      document.getElementById('exportLoading').classList.remove('hidden');
+
+      const snap = buildExportDOM(type, wk, dates);
+      document.body.appendChild(snap);
+
+      try {
+        const canvas = await html2canvas(snap, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+
+        const wkStr   = weekRangeFilename(dates);
+        const typeStr = type === 'admin' ? '관리자뷰' : '공개뷰';
+        const filename = `schedule_${wkStr}_${typeStr}.png`;
+
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast(`이미지 저장: ${filename}`);
+      } catch (err) {
+        console.error(err);
+        showToast('이미지 저장 중 오류가 발생했습니다.');
+      } finally {
+        document.body.removeChild(snap);
+        document.getElementById('exportLoading').classList.add('hidden');
+      }
+    }
+
+    function buildExportDOM(type, wk, dates) {
+      const isAdmin = type === 'admin';
+      const headerBg = isAdmin ? '#1a365d' : '#15803d';
+      const title    = isAdmin ? '관리자 스케줄 현황' : '통역 서비스 예약 가능 일정';
+      const badge    = isAdmin
+        ? `<div style="background:rgba(255,255,255,0.25);color:white;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;">ADMIN</div>`
+        : '';
+
+      const wrap = document.createElement('div');
+      wrap.style.cssText = `
+        position: fixed; left: -9999px; top: 0;
+        width: 860px;
+        background: white;
+        font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      `;
+
+      wrap.innerHTML = `
+        <div style="background:${headerBg};color:white;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:20px;font-weight:700;">${title}</div>
+            <div style="font-size:13px;opacity:0.8;margin-top:4px;">${weekRangeLabel(dates)}</div>
+          </div>
+          ${badge}
+        </div>
+        <div style="padding:20px 28px 24px;">
+          ${buildExportTable(type, wk, dates)}
+          ${buildExportLegend(type)}
+          <div style="margin-top:14px;font-size:11px;color:#94a3b8;text-align:right;">
+            출력일: ${new Date().toLocaleDateString('ko-KR')} &nbsp;|&nbsp; 통역 서비스 스케줄러
+          </div>
+        </div>
+      `;
+
+      return wrap;
+    }
+
+    function buildExportTable(type, wk, dates) {
+      const isAdmin = type === 'admin';
+
+      let html = `<table style="border-collapse:separate;border-spacing:4px;width:100%;table-layout:fixed;">`;
+
+      // header
+      html += `<thead><tr>`;
+      html += `<th style="width:72px;padding:10px 6px;text-align:center;background:#f7fafc;font-size:12px;color:#4a5568;border-radius:6px;">시간</th>`;
+      dates.forEach((date, i) => {
+        html += `<th style="padding:10px 6px;text-align:center;background:#f7fafc;border-radius:6px;">
+          <div style="font-size:15px;font-weight:700;color:#2d3748;">${DAYS_KO[i]}</div>
+          <div style="font-size:11px;color:#718096;margin-top:2px;">${fmt(date)}</div>
+        </th>`;
+      });
+      html += `</tr></thead><tbody>`;
+
+      // rows
+      HOURS.forEach(hour => {
+        html += `<tr>`;
+        html += `<td style="padding:8px 6px;text-align:center;font-size:12px;font-weight:600;color:#4a5568;background:#fafafa;border-radius:6px;">${hour}:00</td>`;
+
+        dates.forEach((_, di) => {
+          const cap     = getCap(wk, di, hour);
+          const blocked = getBlocked(wk, di, hour);
+          const avail   = Math.max(0, cap - blocked);
+          const state   = slotState(avail, cap);
+
+          let bg, color, border, content;
+
+          if (isAdmin) {
+            if (state === 's-available') { bg = '#f0fdf4'; color = '#15803d'; border = '#bbf7d0'; }
+            else if (state === 's-partial')   { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
+            else                              { bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; }
+
+            const stateText = state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`;
+            content = `
+              <div style="font-size:26px;font-weight:800;line-height:1;">${avail}</div>
+              <div style="font-size:10px;opacity:0.6;margin-top:2px;">/ ${cap} 슬롯</div>
+              <div style="font-size:10px;font-weight:600;margin-top:3px;">${stateText}</div>
+            `;
+          } else {
+            if (state === 's-available') { bg = '#f0fdf4'; color = '#15803d'; border = '#bbf7d0'; }
+            else if (state === 's-partial')   { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
+            else                              { bg = '#f8fafc'; color = '#94a3b8'; border = '#e2e8f0'; }
+
+            content = state === 's-blocked'
+              ? `<div style="font-size:18px;line-height:1;">✕</div><div style="font-size:11px;margin-top:4px;font-weight:600;">예약 불가</div>`
+              : `<div style="font-size:18px;line-height:1;">✓</div><div style="font-size:13px;font-weight:700;margin-top:3px;">${avail}자리</div><div style="font-size:10px;margin-top:2px;">예약 가능</div>`;
+          }
+
+          html += `
+            <td style="padding:8px 6px;text-align:center;background:${bg};color:${color};
+                        border:2px solid ${border};border-radius:8px;vertical-align:middle;min-height:68px;">
+              ${content}
+            </td>`;
+        });
+
+        html += `</tr>`;
+      });
+
+      html += `</tbody></table>`;
+      return html;
+    }
+
+    function buildExportLegend(type) {
+      const isAdmin = type === 'admin';
+      const items = isAdmin
+        ? [
+            { bg: '#f0fdf4', border: '#bbf7d0', label: '전체 가능' },
+            { bg: '#fff7ed', border: '#fed7aa', label: '일부 예약됨' },
+            { bg: '#fef2f2', border: '#fecaca', label: '전체 마감' },
+          ]
+        : [
+            { bg: '#f0fdf4', border: '#bbf7d0', label: '예약 가능' },
+            { bg: '#fff7ed', border: '#fed7aa', label: '일부 가능' },
+            { bg: '#f8fafc',  border: '#e2e8f0', label: '예약 불가' },
+          ];
+
+      const dots = items.map(it =>
+        `<div style="display:flex;align-items:center;gap:7px;font-size:12px;color:#4a5568;">
+          <div style="width:13px;height:13px;background:${it.bg};border:2px solid ${it.border};border-radius:3px;flex-shrink:0;"></div>
+          ${it.label}
+        </div>`
+      ).join('');
+
+      return `
+        <div style="margin-top:14px;padding:10px 16px;background:#f8fafc;border-radius:8px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;">
+          <div style="font-size:12px;font-weight:600;color:#4a5568;">범례</div>
+          ${dots}
+        </div>
+      `;
+    }
+
+    // ─────────────────────────────────────────────
+    // Toast
+    // ─────────────────────────────────────────────
+    let _toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ─────────────────────────────────────────────
+    // Event listeners
+    // ─────────────────────────────────────────────
+    document.getElementById('prevWeek').addEventListener('click', () => {
+      currentWeek = new Date(currentWeek);
+      currentWeek.setDate(currentWeek.getDate() - 7);
+      render();
+    });
+
+    document.getElementById('nextWeek').addEventListener('click', () => {
+      currentWeek = new Date(currentWeek);
+      currentWeek.setDate(currentWeek.getDate() + 7);
+      render();
+    });
+
+    document.getElementById('capMinus').addEventListener('click', () => {
+      if (defaultCapacity > 1) { defaultCapacity--; save(); render(); }
+    });
+
+    document.getElementById('capPlus').addEventListener('click', () => {
+      if (defaultCapacity < 20) { defaultCapacity++; save(); render(); }
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('adminView').style.display  = activeTab === 'admin'  ? 'inline-block' : 'none';
+        document.getElementById('publicView').style.display = activeTab === 'public' ? 'inline-block' : 'none';
+      });
+    });
+
+    document.getElementById('exportAdmin').addEventListener('click',  () => exportImage('admin'));
+    document.getElementById('exportPublic').addEventListener('click', () => exportImage('public'));
+
+    document.getElementById('resetWeek').addEventListener('click', () => {
+      if (confirm('이번 주 스케줄을 모두 초기화하시겠습니까?')) {
+        resetWeekData(getWeekKey(currentWeek));
+        render();
+        showToast('초기화되었습니다.');
+      }
+    });
+
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('modalConfirm').addEventListener('click', confirmModal);
+    document.getElementById('modalOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalOverlay')) closeModal();
+    });
+    document.getElementById('modalInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') confirmModal();
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // ─────────────────────────────────────────────
+    // Init
+    // ─────────────────────────────────────────────
+    render();
+  </script>
+</body>
+</html>
