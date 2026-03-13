@@ -37,7 +37,7 @@
       border-bottom: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 20px;
       flex-wrap: wrap;
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
       flex-shrink: 0;
@@ -104,6 +104,33 @@
     }
     .cap-hint { font-size: 11px; color: #94a3b8; }
 
+    /* ── Schedule Settings ── */
+    .schedule-settings {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #4a5568;
+      flex-wrap: wrap;
+    }
+    .schedule-settings label { white-space: nowrap; font-weight: 600; color: #2d3748; }
+    .ctrl-select {
+      padding: 5px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: white;
+      font-size: 13px;
+      color: #2d3748;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .ctrl-select:focus { border-color: #2d6a9f; }
+    .settings-sep {
+      color: #cbd5e0;
+      font-size: 11px;
+    }
+
     /* ── Tab Bar ── */
     .tab-bar {
       background: white;
@@ -158,9 +185,47 @@
       color: #4a5568;
       background: #f7fafc;
       border-radius: 8px;
+      position: relative;
     }
     .cell-header .day-name { font-size: 15px; font-weight: 700; color: #2d3748; }
     .cell-header .day-date { font-size: 11px; color: #718096; margin-top: 2px; }
+
+    /* Holiday header */
+    .cell-header.is-holiday {
+      background: #fff8f0;
+      border: 2px solid #fed7aa;
+    }
+    .cell-header.is-holiday .day-name { color: #c2410c; }
+    .cell-header.is-holiday .day-date { color: #f97316; }
+    .holiday-badge {
+      display: inline-block;
+      background: #f97316;
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 8px;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Holiday toggle button on header */
+    .holiday-toggle-btn {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 20px; height: 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.07);
+      color: #718096;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .cell-header:hover .holiday-toggle-btn { opacity: 1; }
+    .cell-header.is-holiday .holiday-toggle-btn { opacity: 1; background: #f97316; color: white; }
 
     .time-cell {
       display: flex;
@@ -180,7 +245,7 @@
       cursor: pointer;
       user-select: none;
       transition: transform 0.12s, box-shadow 0.12s;
-      min-height: 70px;
+      min-height: 62px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -195,7 +260,17 @@
     .slot.s-partial   { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
     .slot.s-blocked   { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
 
-    .slot-num   { font-size: 24px; font-weight: 800; line-height: 1; }
+    /* Holiday slot */
+    .slot.s-holiday, .pub-slot.s-holiday {
+      background: #f5f5f5;
+      border-color: #e2e8f0;
+      color: #b0b8c1;
+      cursor: default;
+      pointer-events: none;
+    }
+    .slot.s-holiday:hover { transform: none; box-shadow: none; }
+
+    .slot-num   { font-size: 22px; font-weight: 800; line-height: 1; }
     .slot-cap   { font-size: 10px; opacity: 0.6; }
     .slot-text  { font-size: 10px; font-weight: 600; margin-top: 1px; }
 
@@ -221,7 +296,7 @@
       padding: 8px 6px;
       border-radius: 10px;
       text-align: center;
-      min-height: 70px;
+      min-height: 62px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -232,8 +307,9 @@
     .pub-slot.s-available { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
     .pub-slot.s-partial   { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
     .pub-slot.s-blocked   { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
+    .pub-slot.s-holiday   { background: #f5f5f5; border-color: #e2e8f0; color: #b0b8c1; }
 
-    .pub-icon  { font-size: 20px; line-height: 1; }
+    .pub-icon  { font-size: 18px; line-height: 1; }
     .pub-count { font-size: 13px; font-weight: 700; }
     .pub-text  { font-size: 10px; }
 
@@ -261,6 +337,7 @@
     .ldot.partial   { background: #fff7ed; border-color: #fed7aa; }
     .ldot.blocked-a { background: #fef2f2; border-color: #fecaca; }
     .ldot.blocked-p { background: #f8fafc;  border-color: #e2e8f0; }
+    .ldot.holiday   { background: #f5f5f5; border-color: #e2e8f0; }
     .legend-hint { font-size: 11px; color: #94a3b8; margin-left: auto; }
 
     /* ── Action Bar ── */
@@ -384,6 +461,7 @@
       <div class="week-label" id="weekLabel"></div>
       <button class="nav-btn" id="nextWeek" title="다음 주">&#9654;</button>
     </div>
+
     <div class="capacity-control">
       <label>기본 통역사 수:</label>
       <div class="capacity-input-group">
@@ -391,7 +469,25 @@
         <div class="cap-value" id="capDisplay">2</div>
         <button class="cap-btn" id="capPlus">+</button>
       </div>
-      <span class="cap-hint">명 (슬롯 기본값 · ✎ 버튼으로 셀 개별 설정 가능)</span>
+      <span class="cap-hint">명</span>
+    </div>
+
+    <div class="schedule-settings">
+      <label>⏱ 시간 블록:</label>
+      <select class="ctrl-select" id="blockMinsSelect">
+        <option value="30">30분</option>
+        <option value="60" selected>1시간</option>
+        <option value="90">1시간 30분</option>
+        <option value="120">2시간</option>
+      </select>
+
+      <span class="settings-sep">|</span>
+
+      <label>시작:</label>
+      <select class="ctrl-select" id="startHourSelect"></select>
+
+      <label>종료:</label>
+      <select class="ctrl-select" id="endHourSelect"></select>
     </div>
   </div>
 
@@ -409,7 +505,8 @@
         <div class="legend-item"><div class="ldot available"></div> 전체 가능</div>
         <div class="legend-item"><div class="ldot partial"></div> 일부 예약됨</div>
         <div class="legend-item"><div class="ldot blocked-a"></div> 전체 마감</div>
-        <div class="legend-hint">슬롯 클릭 → 예약 블록 +1 (최대 도달 시 초기화) &nbsp;|&nbsp; ✎ → 셀 용량 개별 설정</div>
+        <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
+        <div class="legend-hint">슬롯 클릭 → 예약 블록 +1 (최대 도달 시 초기화) &nbsp;|&nbsp; ✎ → 셀 용량 개별 설정 &nbsp;|&nbsp; 날짜 헤더 🏖 → 휴일 토글</div>
       </div>
     </div>
 
@@ -419,6 +516,7 @@
         <div class="legend-item"><div class="ldot available"></div> 예약 가능</div>
         <div class="legend-item"><div class="ldot partial"></div> 일부 가능</div>
         <div class="legend-item"><div class="ldot blocked-p"></div> 예약 불가</div>
+        <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
       </div>
     </div>
   </div>
@@ -456,16 +554,42 @@
     // Constants
     // ─────────────────────────────────────────────
     const DAYS_KO = ['월', '화', '수', '목', '금'];
-    const HOURS    = [10, 11, 12, 13, 14, 15, 16, 17, 18];
 
     // ─────────────────────────────────────────────
     // State
     // ─────────────────────────────────────────────
-    let currentWeek      = getMonday(new Date());
-    let defaultCapacity  = parseInt(localStorage.getItem('sc_defaultCap') || '2');
-    let weekData         = JSON.parse(localStorage.getItem('sc_weekData') || '{}');
-    let activeTab        = 'admin';
-    let pendingModal     = null;
+    let currentWeek     = getMonday(new Date());
+    let defaultCapacity = parseInt(localStorage.getItem('sc_defaultCap') || '2');
+    let weekData        = JSON.parse(localStorage.getItem('sc_weekData') || '{}');
+    let holidays        = new Set(JSON.parse(localStorage.getItem('sc_holidays') || '[]'));
+    let activeTab       = 'admin';
+    let pendingModal    = null;
+
+    // Schedule settings
+    let blockMins  = parseInt(localStorage.getItem('sc_blockMins')  || '60');
+    let startHour  = parseInt(localStorage.getItem('sc_startHour')  || '10');
+    let endHour    = parseInt(localStorage.getItem('sc_endHour')    || '18');
+
+    // ─────────────────────────────────────────────
+    // Time slot helpers
+    // ─────────────────────────────────────────────
+    /**
+     * Returns array of {h, m, label, key} for each slot in the day.
+     * key format: "HHMM" (e.g. "1000", "1030")
+     */
+    function getTimeSlots() {
+      const slots = [];
+      let cur = startHour * 60; // minutes from midnight
+      const end = endHour * 60;
+      while (cur < end) {
+        const h = Math.floor(cur / 60);
+        const m = cur % 60;
+        const key = `${String(h).padStart(2,'0')}${String(m).padStart(2,'0')}`;
+        slots.push({ h, m, key, label: `${h}:${String(m).padStart(2,'0')}` });
+        cur += blockMins;
+      }
+      return slots;
+    }
 
     // ─────────────────────────────────────────────
     // Date helpers
@@ -491,19 +615,36 @@
       });
     }
 
-    function fmt(d)        { return `${d.getMonth()+1}/${d.getDate()}`; }
-    function fmtFull(d)    { return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`; }
-    function pad(n)        { return String(n).padStart(2, '0'); }
+    function fmt(d)     { return `${d.getMonth()+1}/${d.getDate()}`; }
+    function fmtFull(d) { return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`; }
+    function fmtISO(d)  { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+    function pad(n)     { return String(n).padStart(2, '0'); }
 
     function weekRangeLabel(dates) {
       const s = dates[0], e = dates[4];
       return `${s.getFullYear()}년 ${s.getMonth()+1}월 ${s.getDate()}일 (월) ~ ${e.getMonth()+1}월 ${e.getDate()}일 (금)`;
     }
 
-    /** 파일명용 주간 문자열: 2026.03.16~03.20 */
     function weekRangeFilename(dates) {
       const s = dates[0], e = dates[4];
       return `${fmtFull(s)}~${pad(e.getMonth()+1)}.${pad(e.getDate())}`;
+    }
+
+    // ─────────────────────────────────────────────
+    // Holiday helpers
+    // ─────────────────────────────────────────────
+    function isHoliday(date) {
+      return holidays.has(fmtISO(date));
+    }
+
+    function toggleHoliday(date) {
+      const key = fmtISO(date);
+      if (holidays.has(key)) {
+        holidays.delete(key);
+      } else {
+        holidays.add(key);
+      }
+      save();
     }
 
     // ─────────────────────────────────────────────
@@ -514,28 +655,29 @@
       return weekData[wk];
     }
 
-    function sk(d, h) { return `${d}-${h}`; }
+    /** Slot storage key: "dayIndex-HHMM" */
+    function sk(di, slotKey) { return `${di}-${slotKey}`; }
 
-    function getCap(wk, d, h) {
-      return getWeekObj(wk).capacity[sk(d, h)] ?? defaultCapacity;
+    function getCap(wk, di, slotKey) {
+      return getWeekObj(wk).capacity[sk(di, slotKey)] ?? defaultCapacity;
     }
 
-    function getBlocked(wk, d, h) {
-      return getWeekObj(wk).blocked[sk(d, h)] ?? 0;
+    function getBlocked(wk, di, slotKey) {
+      return getWeekObj(wk).blocked[sk(di, slotKey)] ?? 0;
     }
 
-    function incrementBlock(wk, d, h) {
+    function incrementBlock(wk, di, slotKey) {
       const obj = getWeekObj(wk);
-      const cap = getCap(wk, d, h);
-      const k   = sk(d, h);
+      const cap = getCap(wk, di, slotKey);
+      const k   = sk(di, slotKey);
       const cur = obj.blocked[k] ?? 0;
       obj.blocked[k] = cur >= cap ? 0 : cur + 1;
       save();
     }
 
-    function setCapacity(wk, d, h, val) {
+    function setCapacity(wk, di, slotKey, val) {
       const obj = getWeekObj(wk);
-      const k   = sk(d, h);
+      const k   = sk(di, slotKey);
       obj.capacity[k] = val;
       if ((obj.blocked[k] ?? 0) > val) obj.blocked[k] = val;
       save();
@@ -547,13 +689,17 @@
     }
 
     function save() {
-      localStorage.setItem('sc_weekData',    JSON.stringify(weekData));
-      localStorage.setItem('sc_defaultCap',  String(defaultCapacity));
+      localStorage.setItem('sc_weekData',   JSON.stringify(weekData));
+      localStorage.setItem('sc_defaultCap', String(defaultCapacity));
+      localStorage.setItem('sc_holidays',   JSON.stringify([...holidays]));
+      localStorage.setItem('sc_blockMins',  String(blockMins));
+      localStorage.setItem('sc_startHour',  String(startHour));
+      localStorage.setItem('sc_endHour',    String(endHour));
     }
 
     function slotState(avail, cap) {
-      if (avail === cap)  return 's-available';
-      if (avail === 0)    return 's-blocked';
+      if (avail === cap) return 's-available';
+      if (avail === 0)   return 's-blocked';
       return 's-partial';
     }
 
@@ -572,36 +718,54 @@
     }
 
     function renderAdminGrid(wk, dates) {
-      const grid = document.getElementById('adminGrid');
+      const grid  = document.getElementById('adminGrid');
+      const slots = getTimeSlots();
       grid.innerHTML = '';
 
       // corner
       const corner = document.createElement('div');
       corner.className = 'cell-header';
-      corner.style.display = 'flex';
-      corner.style.alignItems = 'center';
-      corner.style.justifyContent = 'center';
+      corner.style.cssText = 'display:flex;align-items:center;justify-content:center;';
       corner.textContent = '시간';
       grid.appendChild(corner);
 
       // day headers
       dates.forEach((date, i) => {
+        const holiday = isHoliday(date);
         const el = document.createElement('div');
-        el.className = 'cell-header';
-        el.innerHTML = `<div class="day-name">${DAYS_KO[i]}</div><div class="day-date">${fmt(date)}</div>`;
+        el.className = `cell-header${holiday ? ' is-holiday' : ''}`;
+        el.innerHTML = `
+          <div class="day-name">${DAYS_KO[i]}</div>
+          <div class="day-date">${fmt(date)}</div>
+          ${holiday ? '<div><span class="holiday-badge">휴일</span></div>' : ''}
+          <button class="holiday-toggle-btn" title="${holiday ? '휴일 해제' : '휴일로 지정'}">🏖</button>
+        `;
+        el.querySelector('.holiday-toggle-btn').addEventListener('click', () => {
+          toggleHoliday(date);
+          render();
+          showToast(isHoliday(date) ? `${fmt(date)} 휴일로 지정되었습니다.` : `${fmt(date)} 휴일이 해제되었습니다.`);
+        });
         grid.appendChild(el);
       });
 
       // rows
-      HOURS.forEach(hour => {
+      slots.forEach(slot => {
         const tl = document.createElement('div');
         tl.className = 'time-cell';
-        tl.textContent = `${hour}:00`;
+        tl.textContent = slot.label;
         grid.appendChild(tl);
 
-        dates.forEach((_, di) => {
-          const cap     = getCap(wk, di, hour);
-          const blocked = getBlocked(wk, di, hour);
+        dates.forEach((date, di) => {
+          if (isHoliday(date)) {
+            const cell = document.createElement('div');
+            cell.className = 'slot s-holiday';
+            cell.innerHTML = `<div class="slot-text">휴일</div>`;
+            grid.appendChild(cell);
+            return;
+          }
+
+          const cap     = getCap(wk, di, slot.key);
+          const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
           const state   = slotState(avail, cap);
 
@@ -616,13 +780,13 @@
 
           cell.addEventListener('click', e => {
             if (e.target.classList.contains('edit-btn')) return;
-            incrementBlock(wk, di, hour);
+            incrementBlock(wk, di, slot.key);
             render();
           });
 
           cell.querySelector('.edit-btn').addEventListener('click', e => {
             e.stopPropagation();
-            openModal(wk, di, hour, dates[di]);
+            openModal(wk, di, slot, date);
           });
 
           grid.appendChild(cell);
@@ -631,37 +795,49 @@
     }
 
     function renderPublicGrid(wk, dates) {
-      const grid = document.getElementById('publicGrid');
+      const grid  = document.getElementById('publicGrid');
+      const slots = getTimeSlots();
       grid.innerHTML = '';
 
       const corner = document.createElement('div');
       corner.className = 'cell-header';
-      corner.style.display = 'flex';
-      corner.style.alignItems = 'center';
-      corner.style.justifyContent = 'center';
+      corner.style.cssText = 'display:flex;align-items:center;justify-content:center;';
       corner.textContent = '시간';
       grid.appendChild(corner);
 
       dates.forEach((date, i) => {
+        const holiday = isHoliday(date);
         const el = document.createElement('div');
-        el.className = 'cell-header';
-        el.innerHTML = `<div class="day-name">${DAYS_KO[i]}</div><div class="day-date">${fmt(date)}</div>`;
+        el.className = `cell-header${holiday ? ' is-holiday' : ''}`;
+        el.innerHTML = `
+          <div class="day-name">${DAYS_KO[i]}</div>
+          <div class="day-date">${fmt(date)}</div>
+          ${holiday ? '<div><span class="holiday-badge">휴일</span></div>' : ''}
+        `;
         grid.appendChild(el);
       });
 
-      HOURS.forEach(hour => {
+      slots.forEach(slot => {
         const tl = document.createElement('div');
         tl.className = 'time-cell';
-        tl.textContent = `${hour}:00`;
+        tl.textContent = slot.label;
         grid.appendChild(tl);
 
-        dates.forEach((_, di) => {
-          const cap    = getCap(wk, di, hour);
-          const blocked = getBlocked(wk, di, hour);
+        dates.forEach((date, di) => {
+          const cell = document.createElement('div');
+
+          if (isHoliday(date)) {
+            cell.className = 'pub-slot s-holiday';
+            cell.innerHTML = `<div class="pub-icon">🏖</div><div class="pub-text">휴일</div>`;
+            grid.appendChild(cell);
+            return;
+          }
+
+          const cap    = getCap(wk, di, slot.key);
+          const blocked = getBlocked(wk, di, slot.key);
           const avail  = Math.max(0, cap - blocked);
           const state  = slotState(avail, cap);
 
-          const cell = document.createElement('div');
           cell.className = `pub-slot ${state}`;
 
           if (state === 's-blocked') {
@@ -681,11 +857,11 @@
     // ─────────────────────────────────────────────
     // Modal
     // ─────────────────────────────────────────────
-    function openModal(wk, di, hour, date) {
-      pendingModal = { wk, di, hour };
-      const cap = getCap(wk, di, hour);
+    function openModal(wk, di, slot, date) {
+      pendingModal = { wk, di, slotKey: slot.key };
+      const cap = getCap(wk, di, slot.key);
       document.getElementById('modalDesc').innerHTML =
-        `<strong>${fmt(date)} (${DAYS_KO[di]}) ${hour}:00</strong> 슬롯의 통역사 수를 설정합니다.<br>현재: ${cap}명`;
+        `<strong>${fmt(date)} (${DAYS_KO[di]}) ${slot.label}</strong> 슬롯의 통역사 수를 설정합니다.<br>현재: ${cap}명`;
       document.getElementById('modalInput').value = cap;
       document.getElementById('modalOverlay').classList.remove('hidden');
       setTimeout(() => document.getElementById('modalInput').select(), 60);
@@ -703,7 +879,7 @@
         showToast('1~20 사이의 숫자를 입력해주세요.');
         return;
       }
-      setCapacity(pendingModal.wk, pendingModal.di, pendingModal.hour, val);
+      setCapacity(pendingModal.wk, pendingModal.di, pendingModal.slotKey, val);
       closeModal();
       render();
       showToast('슬롯 용량이 변경되었습니다.');
@@ -748,7 +924,7 @@
     }
 
     function buildExportDOM(type, wk, dates) {
-      const isAdmin = type === 'admin';
+      const isAdmin  = type === 'admin';
       const headerBg = isAdmin ? '#1a365d' : '#15803d';
       const title    = isAdmin ? '관리자 스케줄 현황' : '통역 서비스 예약 가능 일정';
       const badge    = isAdmin
@@ -785,6 +961,7 @@
 
     function buildExportTable(type, wk, dates) {
       const isAdmin = type === 'admin';
+      const slots   = getTimeSlots();
 
       let html = `<table style="border-collapse:separate;border-spacing:4px;width:100%;table-layout:fixed;">`;
 
@@ -792,21 +969,34 @@
       html += `<thead><tr>`;
       html += `<th style="width:72px;padding:10px 6px;text-align:center;background:#f7fafc;font-size:12px;color:#4a5568;border-radius:6px;">시간</th>`;
       dates.forEach((date, i) => {
-        html += `<th style="padding:10px 6px;text-align:center;background:#f7fafc;border-radius:6px;">
-          <div style="font-size:15px;font-weight:700;color:#2d3748;">${DAYS_KO[i]}</div>
-          <div style="font-size:11px;color:#718096;margin-top:2px;">${fmt(date)}</div>
+        const holiday = isHoliday(date);
+        const hdrBg   = holiday ? '#fff8f0' : '#f7fafc';
+        const nameClr = holiday ? '#c2410c' : '#2d3748';
+        const dateClr = holiday ? '#f97316' : '#718096';
+        const badge   = holiday ? `<div style="margin-top:3px;"><span style="background:#f97316;color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;">휴일</span></div>` : '';
+        html += `<th style="padding:10px 6px;text-align:center;background:${hdrBg};border-radius:6px;${holiday ? 'border:2px solid #fed7aa;' : ''}">
+          <div style="font-size:15px;font-weight:700;color:${nameClr};">${DAYS_KO[i]}</div>
+          <div style="font-size:11px;color:${dateClr};margin-top:2px;">${fmt(date)}</div>
+          ${badge}
         </th>`;
       });
       html += `</tr></thead><tbody>`;
 
       // rows
-      HOURS.forEach(hour => {
+      slots.forEach(slot => {
         html += `<tr>`;
-        html += `<td style="padding:8px 6px;text-align:center;font-size:12px;font-weight:600;color:#4a5568;background:#fafafa;border-radius:6px;">${hour}:00</td>`;
+        html += `<td style="padding:8px 6px;text-align:center;font-size:12px;font-weight:600;color:#4a5568;background:#fafafa;border-radius:6px;">${slot.label}</td>`;
 
-        dates.forEach((_, di) => {
-          const cap     = getCap(wk, di, hour);
-          const blocked = getBlocked(wk, di, hour);
+        dates.forEach((date, di) => {
+          if (isHoliday(date)) {
+            html += `<td style="padding:8px 6px;text-align:center;background:#f5f5f5;color:#b0b8c1;border:2px solid #e2e8f0;border-radius:8px;vertical-align:middle;">
+              <div style="font-size:12px;">휴일</div>
+            </td>`;
+            return;
+          }
+
+          const cap     = getCap(wk, di, slot.key);
+          const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
           const state   = slotState(avail, cap);
 
@@ -814,28 +1004,28 @@
 
           if (isAdmin) {
             if (state === 's-available') { bg = '#f0fdf4'; color = '#15803d'; border = '#bbf7d0'; }
-            else if (state === 's-partial')   { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
-            else                              { bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; }
+            else if (state === 's-partial') { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
+            else                           { bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; }
 
             const stateText = state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`;
             content = `
-              <div style="font-size:26px;font-weight:800;line-height:1;">${avail}</div>
+              <div style="font-size:24px;font-weight:800;line-height:1;">${avail}</div>
               <div style="font-size:10px;opacity:0.6;margin-top:2px;">/ ${cap} 슬롯</div>
               <div style="font-size:10px;font-weight:600;margin-top:3px;">${stateText}</div>
             `;
           } else {
             if (state === 's-available') { bg = '#f0fdf4'; color = '#15803d'; border = '#bbf7d0'; }
-            else if (state === 's-partial')   { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
-            else                              { bg = '#f8fafc'; color = '#94a3b8'; border = '#e2e8f0'; }
+            else if (state === 's-partial') { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
+            else                           { bg = '#f8fafc'; color = '#94a3b8'; border = '#e2e8f0'; }
 
             content = state === 's-blocked'
-              ? `<div style="font-size:18px;line-height:1;">✕</div><div style="font-size:11px;margin-top:4px;font-weight:600;">예약 불가</div>`
-              : `<div style="font-size:18px;line-height:1;">✓</div><div style="font-size:13px;font-weight:700;margin-top:3px;">${avail}자리</div><div style="font-size:10px;margin-top:2px;">예약 가능</div>`;
+              ? `<div style="font-size:16px;line-height:1;">✕</div><div style="font-size:11px;margin-top:4px;font-weight:600;">예약 불가</div>`
+              : `<div style="font-size:16px;line-height:1;">✓</div><div style="font-size:13px;font-weight:700;margin-top:3px;">${avail}자리</div><div style="font-size:10px;margin-top:2px;">예약 가능</div>`;
           }
 
           html += `
             <td style="padding:8px 6px;text-align:center;background:${bg};color:${color};
-                        border:2px solid ${border};border-radius:8px;vertical-align:middle;min-height:68px;">
+                        border:2px solid ${border};border-radius:8px;vertical-align:middle;min-height:60px;">
               ${content}
             </td>`;
         });
@@ -854,11 +1044,13 @@
             { bg: '#f0fdf4', border: '#bbf7d0', label: '전체 가능' },
             { bg: '#fff7ed', border: '#fed7aa', label: '일부 예약됨' },
             { bg: '#fef2f2', border: '#fecaca', label: '전체 마감' },
+            { bg: '#f5f5f5', border: '#e2e8f0', label: '휴일' },
           ]
         : [
             { bg: '#f0fdf4', border: '#bbf7d0', label: '예약 가능' },
             { bg: '#fff7ed', border: '#fed7aa', label: '일부 가능' },
-            { bg: '#f8fafc',  border: '#e2e8f0', label: '예약 불가' },
+            { bg: '#f8fafc', border: '#e2e8f0', label: '예약 불가' },
+            { bg: '#f5f5f5', border: '#e2e8f0', label: '휴일' },
           ];
 
       const dots = items.map(it =>
@@ -889,6 +1081,34 @@
     }
 
     // ─────────────────────────────────────────────
+    // Init: populate selects
+    // ─────────────────────────────────────────────
+    function initSelects() {
+      // Block minutes
+      document.getElementById('blockMinsSelect').value = String(blockMins);
+
+      // Start hour options: 07:00 ~ 12:00
+      const startSel = document.getElementById('startHourSelect');
+      for (let h = 7; h <= 12; h++) {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = `${h}:00`;
+        if (h === startHour) opt.selected = true;
+        startSel.appendChild(opt);
+      }
+
+      // End hour options: 13:00 ~ 23:00
+      const endSel = document.getElementById('endHourSelect');
+      for (let h = 13; h <= 23; h++) {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = `${h}:00`;
+        if (h === endHour) opt.selected = true;
+        endSel.appendChild(opt);
+      }
+    }
+
+    // ─────────────────────────────────────────────
     // Event listeners
     // ─────────────────────────────────────────────
     document.getElementById('prevWeek').addEventListener('click', () => {
@@ -909,6 +1129,37 @@
 
     document.getElementById('capPlus').addEventListener('click', () => {
       if (defaultCapacity < 20) { defaultCapacity++; save(); render(); }
+    });
+
+    document.getElementById('blockMinsSelect').addEventListener('change', e => {
+      blockMins = parseInt(e.target.value);
+      save();
+      render();
+      showToast(`시간 블록이 ${e.target.options[e.target.selectedIndex].text}으로 변경되었습니다.`);
+    });
+
+    document.getElementById('startHourSelect').addEventListener('change', e => {
+      const newStart = parseInt(e.target.value);
+      if (newStart >= endHour) {
+        showToast('시작 시간은 종료 시간보다 앞이어야 합니다.');
+        e.target.value = String(startHour);
+        return;
+      }
+      startHour = newStart;
+      save();
+      render();
+    });
+
+    document.getElementById('endHourSelect').addEventListener('change', e => {
+      const newEnd = parseInt(e.target.value);
+      if (newEnd <= startHour) {
+        showToast('종료 시간은 시작 시간보다 뒤여야 합니다.');
+        e.target.value = String(endHour);
+        return;
+      }
+      endHour = newEnd;
+      save();
+      render();
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -945,6 +1196,7 @@
     // ─────────────────────────────────────────────
     // Init
     // ─────────────────────────────────────────────
+    initSelects();
     render();
   </script>
 </body>
