@@ -37,7 +37,7 @@
       border-bottom: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 20px;
       flex-wrap: wrap;
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
       flex-shrink: 0;
@@ -104,6 +104,30 @@
     }
     .cap-hint { font-size: 11px; color: #94a3b8; }
 
+    /* ── Schedule Settings ── */
+    .schedule-settings {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #4a5568;
+      flex-wrap: wrap;
+    }
+    .schedule-settings label { white-space: nowrap; font-weight: 600; color: #2d3748; }
+    .ctrl-select {
+      padding: 5px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: white;
+      font-size: 13px;
+      color: #2d3748;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .ctrl-select:focus { border-color: #2d6a9f; }
+    .settings-sep { color: #cbd5e0; font-size: 11px; }
+
     /* ── Tab Bar ── */
     .tab-bar {
       background: white;
@@ -143,9 +167,10 @@
       min-width: 100%;
     }
 
-    /* ── Grid ── */
-    .grid {
+    /* ── Grid uses CSS grid with inline row count ── */
+    .sched-table {
       display: grid;
+      /* columns: time-label + 5 day cols */
       grid-template-columns: 80px repeat(5, 1fr);
       gap: 5px;
     }
@@ -158,17 +183,70 @@
       color: #4a5568;
       background: #f7fafc;
       border-radius: 8px;
+      position: relative;
     }
     .cell-header .day-name { font-size: 15px; font-weight: 700; color: #2d3748; }
     .cell-header .day-date { font-size: 11px; color: #718096; margin-top: 2px; }
+    .cell-header .day-block-hint { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+    /* Holiday header */
+    .cell-header.is-holiday {
+      background: #fff8f0;
+      border: 2px solid #fed7aa;
+    }
+    .cell-header.is-holiday .day-name { color: #c2410c; }
+    .cell-header.is-holiday .day-date { color: #f97316; }
+    .holiday-badge {
+      display: inline-block;
+      background: #f97316;
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 8px;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Customized day header */
+    .cell-header.is-customized { border: 2px solid #c7d2fe; background: #eef2ff; }
+    .cell-header.is-customized .day-name { color: #3730a3; }
+
+    /* Header action buttons */
+    .hdr-btns {
+      position: absolute;
+      top: 4px; right: 4px;
+      display: flex;
+      gap: 3px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .cell-header:hover .hdr-btns { opacity: 1; }
+    .cell-header.is-holiday .hdr-btns,
+    .cell-header.is-customized .hdr-btns { opacity: 1; }
+    .hdr-btn {
+      width: 20px; height: 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.08);
+      color: #718096;
+      transition: background 0.15s;
+    }
+    .hdr-btn:hover { background: rgba(0,0,0,0.18); }
+    .hdr-btn.holiday-active { background: #f97316; color: white; }
+    .hdr-btn.settings-active { background: #4f46e5; color: white; }
 
     .time-cell {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: #718096;
+      /* grid-row will be set inline for spanning */
     }
 
     /* ── Admin Slot ── */
@@ -180,13 +258,13 @@
       cursor: pointer;
       user-select: none;
       transition: transform 0.12s, box-shadow 0.12s;
-      min-height: 70px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 2px;
       border: 2px solid transparent;
+      /* min-height set inline via grid row span */
     }
     .slot:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
     .slot:active { transform: translateY(0); }
@@ -194,8 +272,16 @@
     .slot.s-available { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
     .slot.s-partial   { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
     .slot.s-blocked   { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+    .slot.s-holiday, .pub-slot.s-holiday {
+      background: #f5f5f5; border-color: #e2e8f0; color: #b0b8c1;
+      cursor: default; pointer-events: none;
+    }
+    .slot.s-holiday:hover { transform: none; box-shadow: none; }
+    /* gap filler for spanned day with smaller unit rows */
+    .slot.s-gap { background: transparent; border: none; pointer-events: none; cursor: default; }
+    .slot.s-gap:hover { transform: none; box-shadow: none; }
 
-    .slot-num   { font-size: 24px; font-weight: 800; line-height: 1; }
+    .slot-num   { font-size: 20px; font-weight: 800; line-height: 1; }
     .slot-cap   { font-size: 10px; opacity: 0.6; }
     .slot-text  { font-size: 10px; font-weight: 600; margin-top: 1px; }
 
@@ -221,7 +307,6 @@
       padding: 8px 6px;
       border-radius: 10px;
       text-align: center;
-      min-height: 70px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -232,8 +317,10 @@
     .pub-slot.s-available { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
     .pub-slot.s-partial   { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
     .pub-slot.s-blocked   { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
+    .pub-slot.s-holiday   { background: #f5f5f5; border-color: #e2e8f0; color: #b0b8c1; }
+    .pub-slot.s-gap       { background: transparent; border: none; }
 
-    .pub-icon  { font-size: 20px; line-height: 1; }
+    .pub-icon  { font-size: 18px; line-height: 1; }
     .pub-count { font-size: 13px; font-weight: 700; }
     .pub-text  { font-size: 10px; }
 
@@ -257,10 +344,11 @@
       border: 2px solid;
       flex-shrink: 0;
     }
-    .ldot.available { background: #f0fdf4; border-color: #bbf7d0; }
-    .ldot.partial   { background: #fff7ed; border-color: #fed7aa; }
-    .ldot.blocked-a { background: #fef2f2; border-color: #fecaca; }
-    .ldot.blocked-p { background: #f8fafc;  border-color: #e2e8f0; }
+    .ldot.available  { background: #f0fdf4; border-color: #bbf7d0; }
+    .ldot.partial    { background: #fff7ed; border-color: #fed7aa; }
+    .ldot.blocked-a  { background: #fef2f2; border-color: #fecaca; }
+    .ldot.blocked-p  { background: #f8fafc; border-color: #e2e8f0; }
+    .ldot.holiday    { background: #f5f5f5; border-color: #e2e8f0; }
     .legend-hint { font-size: 11px; color: #94a3b8; margin-left: auto; }
 
     /* ── Action Bar ── */
@@ -277,7 +365,6 @@
       bottom: 0;
       box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
     }
-
     .btn {
       padding: 9px 18px;
       border-radius: 8px;
@@ -291,14 +378,14 @@
       gap: 6px;
       white-space: nowrap;
     }
-    .btn-navy   { background: #1a365d; color: white; }
-    .btn-navy:hover   { background: #153056; box-shadow: 0 2px 8px rgba(26,54,93,0.3); }
-    .btn-green  { background: #15803d; color: white; }
-    .btn-green:hover  { background: #126933; box-shadow: 0 2px 8px rgba(21,128,61,0.3); }
-    .btn-red    { background: #dc2626; color: white; }
-    .btn-red:hover    { background: #b91c1c; }
-    .btn-ghost  { background: #f7fafc; color: #4a5568; border: 1px solid #e2e8f0; }
-    .btn-ghost:hover  { background: #eef2f7; }
+    .btn-navy  { background: #1a365d; color: white; }
+    .btn-navy:hover  { background: #153056; box-shadow: 0 2px 8px rgba(26,54,93,0.3); }
+    .btn-green { background: #15803d; color: white; }
+    .btn-green:hover { background: #126933; box-shadow: 0 2px 8px rgba(21,128,61,0.3); }
+    .btn-red   { background: #dc2626; color: white; }
+    .btn-red:hover   { background: #b91c1c; }
+    .btn-ghost { background: #f7fafc; color: #4a5568; border: 1px solid #e2e8f0; }
+    .btn-ghost:hover { background: #eef2f7; }
     .action-spacer { flex: 1; }
 
     /* ── Modal ── */
@@ -306,9 +393,7 @@
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.45);
       backdrop-filter: blur(2px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       z-index: 9999;
     }
     .modal-overlay.hidden { display: none; }
@@ -317,12 +402,12 @@
       background: white;
       border-radius: 16px;
       padding: 28px;
-      width: 340px;
+      width: 360px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     }
     .modal-box h3 { font-size: 17px; margin-bottom: 6px; color: #1a202c; }
     .modal-desc { font-size: 13px; color: #718096; margin-bottom: 20px; line-height: 1.5; }
-    .modal-box input {
+    .modal-box input[type=number] {
       width: 100%;
       padding: 12px;
       border: 2px solid #e2e8f0;
@@ -335,8 +420,29 @@
       color: #2d3748;
       transition: border-color 0.15s;
     }
-    .modal-box input:focus { border-color: #2d6a9f; }
+    .modal-box input[type=number]:focus { border-color: #2d6a9f; }
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* Day settings modal form */
+    .day-settings-form { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+    .form-row { display: flex; flex-direction: column; gap: 6px; }
+    .form-row label { font-size: 13px; font-weight: 600; color: #4a5568; }
+    .form-row select, .form-row input {
+      padding: 8px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #2d3748;
+      outline: none;
+      transition: border-color 0.15s;
+      background: white;
+    }
+    .form-row select:focus, .form-row input:focus { border-color: #2d6a9f; }
+    .form-hint { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .reset-day-link {
+      font-size: 12px; color: #dc2626; cursor: pointer; text-decoration: underline;
+      background: none; border: none; padding: 0;
+    }
 
     /* ── Toast ── */
     .toast {
@@ -384,6 +490,7 @@
       <div class="week-label" id="weekLabel"></div>
       <button class="nav-btn" id="nextWeek" title="다음 주">&#9654;</button>
     </div>
+
     <div class="capacity-control">
       <label>기본 통역사 수:</label>
       <div class="capacity-input-group">
@@ -391,7 +498,22 @@
         <div class="cap-value" id="capDisplay">2</div>
         <button class="cap-btn" id="capPlus">+</button>
       </div>
-      <span class="cap-hint">명 (슬롯 기본값 · ✎ 버튼으로 셀 개별 설정 가능)</span>
+      <span class="cap-hint">명 (전체 기본값)</span>
+    </div>
+
+    <div class="schedule-settings">
+      <label>⏱ 기본 시간 블록:</label>
+      <select class="ctrl-select" id="blockMinsSelect">
+        <option value="30">30분</option>
+        <option value="60" selected>1시간</option>
+        <option value="90">1시간 30분</option>
+        <option value="120">2시간</option>
+      </select>
+      <span class="settings-sep">|</span>
+      <label>시작:</label>
+      <select class="ctrl-select" id="startHourSelect"></select>
+      <label>종료:</label>
+      <select class="ctrl-select" id="endHourSelect"></select>
     </div>
   </div>
 
@@ -404,21 +526,22 @@
   <!-- Grid -->
   <div class="main-content">
     <div id="adminView" class="schedule-wrapper">
-      <div class="grid" id="adminGrid"></div>
+      <div class="sched-table" id="adminGrid"></div>
       <div class="legend">
         <div class="legend-item"><div class="ldot available"></div> 전체 가능</div>
         <div class="legend-item"><div class="ldot partial"></div> 일부 예약됨</div>
         <div class="legend-item"><div class="ldot blocked-a"></div> 전체 마감</div>
-        <div class="legend-hint">슬롯 클릭 → 예약 블록 +1 (최대 도달 시 초기화) &nbsp;|&nbsp; ✎ → 셀 용량 개별 설정</div>
+        <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
+        <div class="legend-hint">슬롯 클릭 → 예약 +1 &nbsp;|&nbsp; ✎ → 셀 용량 변경 &nbsp;|&nbsp; ⚙ → 날짜별 설정 &nbsp;|&nbsp; 🏖 → 휴일 토글</div>
       </div>
     </div>
-
     <div id="publicView" class="schedule-wrapper" style="display:none;">
-      <div class="grid" id="publicGrid"></div>
+      <div class="sched-table" id="publicGrid"></div>
       <div class="legend">
         <div class="legend-item"><div class="ldot available"></div> 예약 가능</div>
         <div class="legend-item"><div class="ldot partial"></div> 일부 가능</div>
         <div class="legend-item"><div class="ldot blocked-p"></div> 예약 불가</div>
+        <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
       </div>
     </div>
   </div>
@@ -444,9 +567,39 @@
     </div>
   </div>
 
+  <!-- Day Settings Modal -->
+  <div class="modal-overlay hidden" id="dayModalOverlay">
+    <div class="modal-box">
+      <h3 id="dayModalTitle">날짜 설정</h3>
+      <div class="modal-desc" id="dayModalDesc"></div>
+      <div class="day-settings-form">
+        <div class="form-row">
+          <label>시간 블록 크기</label>
+          <select id="dayBlockSelect">
+            <option value="">전역 기본값 사용</option>
+            <option value="30">30분</option>
+            <option value="60">1시간</option>
+            <option value="90">1시간 30분</option>
+            <option value="120">2시간</option>
+          </select>
+          <div class="form-hint">이 날만 다른 시간 단위를 사용합니다.</div>
+        </div>
+        <div class="form-row">
+          <label>기본 통역사 수 (이 날)</label>
+          <input type="number" id="dayCapInput" min="1" max="20" placeholder="전역 기본값 사용" />
+          <div class="form-hint">비워두면 전역 기본값을 사용합니다.</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="reset-day-link" id="dayModalReset">이 날 설정 초기화</button>
+        <button class="btn btn-ghost" id="dayModalCancel">취소</button>
+        <button class="btn btn-navy" id="dayModalConfirm">저장</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Export Loading -->
   <div class="export-loading hidden" id="exportLoading">이미지 생성 중...</div>
-
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
@@ -456,22 +609,94 @@
     // Constants
     // ─────────────────────────────────────────────
     const DAYS_KO = ['월', '화', '수', '목', '금'];
-    const HOURS    = [10, 11, 12, 13, 14, 15, 16, 17, 18];
+    const BLOCK_LABELS = { 30: '30분', 60: '1시간', 90: '1시간 30분', 120: '2시간' };
 
     // ─────────────────────────────────────────────
     // State
     // ─────────────────────────────────────────────
-    let currentWeek      = getMonday(new Date());
-    let defaultCapacity  = parseInt(localStorage.getItem('sc_defaultCap') || '2');
-    let weekData         = JSON.parse(localStorage.getItem('sc_weekData') || '{}');
-    let activeTab        = 'admin';
-    let pendingModal     = null;
+    let currentWeek     = getMonday(new Date());
+    let defaultCapacity = parseInt(localStorage.getItem('sc_defaultCap') || '2');
+    let weekData        = JSON.parse(localStorage.getItem('sc_weekData') || '{}');
+    let holidays        = new Set(JSON.parse(localStorage.getItem('sc_holidays') || '[]'));
+    let activeTab       = 'admin';
+    let pendingModal    = null;
+    let pendingDayModal = null;
+
+    // Global schedule settings (defaults)
+    let blockMins = parseInt(localStorage.getItem('sc_blockMins')  || '60');
+    let startHour = parseInt(localStorage.getItem('sc_startHour')  || '10');
+    let endHour   = parseInt(localStorage.getItem('sc_endHour')    || '18');
+
+    // ─────────────────────────────────────────────
+    // Per-day settings helpers
+    // ─────────────────────────────────────────────
+    // daySettings stored in weekData[wk].daySettings[dateISO] = { blockMins?, defaultCap? }
+    function getDaySettings(wk, dateISO) {
+      return getWeekObj(wk).daySettings?.[dateISO] || {};
+    }
+
+    function setDaySettings(wk, dateISO, settings) {
+      const obj = getWeekObj(wk);
+      if (!obj.daySettings) obj.daySettings = {};
+      if (settings === null) {
+        delete obj.daySettings[dateISO];
+      } else {
+        obj.daySettings[dateISO] = settings;
+      }
+      save();
+    }
+
+    function getDayBlockMins(wk, dateISO) {
+      const ds = getDaySettings(wk, dateISO);
+      return ds.blockMins || blockMins;
+    }
+
+    function getDayDefaultCap(wk, dateISO) {
+      const ds = getDaySettings(wk, dateISO);
+      return ds.defaultCap || defaultCapacity;
+    }
+
+    // ─────────────────────────────────────────────
+    // Time slot helpers
+    // ─────────────────────────────────────────────
+    /**
+     * Generate slots for a given blockMins.
+     * Returns array of { h, m, key, label }
+     * key = "HHMM"
+     */
+    function makeSlots(bMins) {
+      const slots = [];
+      let cur = startHour * 60;
+      const end = endHour * 60;
+      while (cur < end) {
+        const h = Math.floor(cur / 60);
+        const m = cur % 60;
+        const key = `${String(h).padStart(2,'0')}${String(m).padStart(2,'0')}`;
+        slots.push({ h, m, key, label: `${h}:${String(m).padStart(2,'0')}` });
+        cur += bMins;
+      }
+      return slots;
+    }
+
+    /**
+     * Base (finest) slots = slots at the smallest blockMins across all days this week.
+     * We need this to build the unified time axis.
+     */
+    function getBaseSlots(wk, dates) {
+      const mins = [blockMins];
+      dates.forEach(d => {
+        const ds = getDaySettings(wk, fmtISO(d));
+        if (ds.blockMins) mins.push(ds.blockMins);
+      });
+      const finest = Math.min(...mins);
+      return makeSlots(finest);
+    }
 
     // ─────────────────────────────────────────────
     // Date helpers
     // ─────────────────────────────────────────────
     function getMonday(date) {
-      const d   = new Date(date);
+      const d = new Date(date);
       const day = d.getDay();
       const diff = day === 0 ? -6 : 1 - day;
       d.setDate(d.getDate() + diff);
@@ -479,9 +704,7 @@
       return d;
     }
 
-    function getWeekKey(date) {
-      return date.toISOString().slice(0, 10);
-    }
+    function getWeekKey(date) { return date.toISOString().slice(0, 10); }
 
     function getWeekDates(monday) {
       return Array.from({ length: 5 }, (_, i) => {
@@ -491,69 +714,81 @@
       });
     }
 
-    function fmt(d)        { return `${d.getMonth()+1}/${d.getDate()}`; }
-    function fmtFull(d)    { return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`; }
-    function pad(n)        { return String(n).padStart(2, '0'); }
+    function fmt(d)     { return `${d.getMonth()+1}/${d.getDate()}`; }
+    function fmtFull(d) { return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`; }
+    function fmtISO(d)  { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+    function pad(n)     { return String(n).padStart(2, '0'); }
 
     function weekRangeLabel(dates) {
       const s = dates[0], e = dates[4];
       return `${s.getFullYear()}년 ${s.getMonth()+1}월 ${s.getDate()}일 (월) ~ ${e.getMonth()+1}월 ${e.getDate()}일 (금)`;
     }
-
-    /** 파일명용 주간 문자열: 2026.03.16~03.20 */
     function weekRangeFilename(dates) {
       const s = dates[0], e = dates[4];
       return `${fmtFull(s)}~${pad(e.getMonth()+1)}.${pad(e.getDate())}`;
     }
 
     // ─────────────────────────────────────────────
+    // Holiday helpers
+    // ─────────────────────────────────────────────
+    function isHoliday(date) { return holidays.has(fmtISO(date)); }
+    function toggleHoliday(date) {
+      const key = fmtISO(date);
+      if (holidays.has(key)) holidays.delete(key); else holidays.add(key);
+      save();
+    }
+
+    // ─────────────────────────────────────────────
     // Data access
     // ─────────────────────────────────────────────
     function getWeekObj(wk) {
-      if (!weekData[wk]) weekData[wk] = { capacity: {}, blocked: {} };
+      if (!weekData[wk]) weekData[wk] = { capacity: {}, blocked: {}, daySettings: {} };
       return weekData[wk];
     }
 
-    function sk(d, h) { return `${d}-${h}`; }
+    function sk(di, slotKey) { return `${di}-${slotKey}`; }
 
-    function getCap(wk, d, h) {
-      return getWeekObj(wk).capacity[sk(d, h)] ?? defaultCapacity;
+    function getCap(wk, di, slotKey, dateISO) {
+      const stored = getWeekObj(wk).capacity[sk(di, slotKey)];
+      if (stored !== undefined) return stored;
+      return getDayDefaultCap(wk, dateISO);
     }
 
-    function getBlocked(wk, d, h) {
-      return getWeekObj(wk).blocked[sk(d, h)] ?? 0;
+    function getBlocked(wk, di, slotKey) {
+      return getWeekObj(wk).blocked[sk(di, slotKey)] ?? 0;
     }
 
-    function incrementBlock(wk, d, h) {
+    function incrementBlock(wk, di, slotKey, dateISO) {
       const obj = getWeekObj(wk);
-      const cap = getCap(wk, d, h);
-      const k   = sk(d, h);
+      const cap = getCap(wk, di, slotKey, dateISO);
+      const k   = sk(di, slotKey);
       const cur = obj.blocked[k] ?? 0;
       obj.blocked[k] = cur >= cap ? 0 : cur + 1;
       save();
     }
 
-    function setCapacity(wk, d, h, val) {
+    function setCapacity(wk, di, slotKey, val) {
       const obj = getWeekObj(wk);
-      const k   = sk(d, h);
+      const k   = sk(di, slotKey);
       obj.capacity[k] = val;
       if ((obj.blocked[k] ?? 0) > val) obj.blocked[k] = val;
       save();
     }
 
-    function resetWeekData(wk) {
-      delete weekData[wk];
-      save();
-    }
+    function resetWeekData(wk) { delete weekData[wk]; save(); }
 
     function save() {
-      localStorage.setItem('sc_weekData',    JSON.stringify(weekData));
-      localStorage.setItem('sc_defaultCap',  String(defaultCapacity));
+      localStorage.setItem('sc_weekData',   JSON.stringify(weekData));
+      localStorage.setItem('sc_defaultCap', String(defaultCapacity));
+      localStorage.setItem('sc_holidays',   JSON.stringify([...holidays]));
+      localStorage.setItem('sc_blockMins',  String(blockMins));
+      localStorage.setItem('sc_startHour',  String(startHour));
+      localStorage.setItem('sc_endHour',    String(endHour));
     }
 
     function slotState(avail, cap) {
-      if (avail === cap)  return 's-available';
-      if (avail === 0)    return 's-blocked';
+      if (avail === cap) return 's-available';
+      if (avail === 0)   return 's-blocked';
       return 's-partial';
     }
 
@@ -563,49 +798,119 @@
     function render() {
       const wk    = getWeekKey(currentWeek);
       const dates = getWeekDates(currentWeek);
-
       document.getElementById('weekLabel').textContent  = weekRangeLabel(dates);
       document.getElementById('capDisplay').textContent = defaultCapacity;
-
       renderAdminGrid(wk, dates);
       renderPublicGrid(wk, dates);
     }
 
+    /**
+     * Build the grid.
+     * baseSlots = finest-granularity slots for the time axis.
+     * Each day has its own daySlots (may be coarser).
+     * For a day slot that spans N base rows, we use grid-row: span N.
+     */
     function renderAdminGrid(wk, dates) {
       const grid = document.getElementById('adminGrid');
       grid.innerHTML = '';
 
-      // corner
+      const baseSlots = getBaseSlots(wk, dates);
+      const totalRows = baseSlots.length; // data rows (excluding header row)
+
+      // Set grid rows: 1 header + totalRows data rows
+      grid.style.gridTemplateRows = `auto repeat(${totalRows}, minmax(54px, auto))`;
+
+      // ── Corner ──
       const corner = document.createElement('div');
       corner.className = 'cell-header';
-      corner.style.display = 'flex';
-      corner.style.alignItems = 'center';
-      corner.style.justifyContent = 'center';
+      corner.style.cssText = 'display:flex;align-items:center;justify-content:center;';
       corner.textContent = '시간';
       grid.appendChild(corner);
 
-      // day headers
+      // ── Day headers ──
       dates.forEach((date, i) => {
+        const iso      = fmtISO(date);
+        const holiday  = isHoliday(date);
+        const ds       = getDaySettings(wk, iso);
+        const hasCust  = !holiday && (ds.blockMins || ds.defaultCap);
+        let cls = 'cell-header';
+        if (holiday)  cls += ' is-holiday';
+        else if (hasCust) cls += ' is-customized';
+
+        const hintParts = [];
+        if (ds.blockMins)   hintParts.push(BLOCK_LABELS[ds.blockMins]);
+        if (ds.defaultCap)  hintParts.push(`기본 ${ds.defaultCap}명`);
+
         const el = document.createElement('div');
-        el.className = 'cell-header';
-        el.innerHTML = `<div class="day-name">${DAYS_KO[i]}</div><div class="day-date">${fmt(date)}</div>`;
+        el.className = cls;
+        el.innerHTML = `
+          <div class="day-name">${DAYS_KO[i]}</div>
+          <div class="day-date">${fmt(date)}</div>
+          ${holiday ? '<div><span class="holiday-badge">휴일</span></div>' : ''}
+          ${hasCust ? `<div class="day-block-hint">${hintParts.join(' · ')}</div>` : ''}
+          <div class="hdr-btns">
+            <button class="hdr-btn settings-btn${hasCust ? ' settings-active' : ''}" title="이 날 설정">⚙</button>
+            <button class="hdr-btn holiday-btn${holiday ? ' holiday-active' : ''}" title="${holiday ? '휴일 해제' : '휴일 지정'}">🏖</button>
+          </div>
+        `;
+
+        el.querySelector('.settings-btn').addEventListener('click', e => {
+          e.stopPropagation();
+          openDayModal(wk, i, date);
+        });
+        el.querySelector('.holiday-btn').addEventListener('click', e => {
+          e.stopPropagation();
+          toggleHoliday(date);
+          render();
+          showToast(isHoliday(date) ? `${fmt(date)} 휴일 지정` : `${fmt(date)} 휴일 해제`);
+        });
         grid.appendChild(el);
       });
 
-      // rows
-      HOURS.forEach(hour => {
+      // ── Time axis + cells ──
+      // Time label cells: one per base slot, spanning 1 row each
+      // Day cells: span = dayBlockMins / baseBlockMins rows
+      const baseMin = Math.min(...[blockMins, ...dates.map(d => getDayBlockMins(wk, fmtISO(d)))]);
+
+      baseSlots.forEach((bSlot, rowIdx) => {
+        // Time label - grid col 1, row rowIdx+2 (1-indexed, row 1 = header)
         const tl = document.createElement('div');
         tl.className = 'time-cell';
-        tl.textContent = `${hour}:00`;
+        tl.style.gridColumn = '1';
+        tl.style.gridRow = `${rowIdx + 2}`;
+        tl.textContent = bSlot.label;
         grid.appendChild(tl);
+      });
 
-        dates.forEach((_, di) => {
-          const cap     = getCap(wk, di, hour);
-          const blocked = getBlocked(wk, di, hour);
+      // For each day, build slot cells with row spanning
+      dates.forEach((date, di) => {
+        const iso     = fmtISO(date);
+        const holiday = isHoliday(date);
+        const dayBMin = getDayBlockMins(wk, iso);
+        const daySlots = makeSlots(dayBMin);
+        const spanRows = dayBMin / baseMin; // how many base rows this day's slot covers
+
+        daySlots.forEach((slot, slotIdx) => {
+          // Find which base row this slot starts at
+          const startRowIdx = (slotIdx * spanRows);
+
+          const cell = document.createElement('div');
+          cell.style.gridColumn = `${di + 2}`; // col 2..6
+          cell.style.gridRow    = `${startRowIdx + 2} / span ${spanRows}`;
+
+          if (holiday) {
+            cell.className = 'slot s-holiday';
+            if (slotIdx === 0) cell.innerHTML = `<div class="slot-text">휴일</div>`;
+            else cell.className = 'slot s-gap';
+            grid.appendChild(cell);
+            return;
+          }
+
+          const cap     = getCap(wk, di, slot.key, iso);
+          const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
           const state   = slotState(avail, cap);
 
-          const cell = document.createElement('div');
           cell.className = `slot ${state}`;
           cell.innerHTML = `
             <button class="edit-btn" title="슬롯 용량 변경">✎</button>
@@ -616,13 +921,12 @@
 
           cell.addEventListener('click', e => {
             if (e.target.classList.contains('edit-btn')) return;
-            incrementBlock(wk, di, hour);
+            incrementBlock(wk, di, slot.key, iso);
             render();
           });
-
           cell.querySelector('.edit-btn').addEventListener('click', e => {
             e.stopPropagation();
-            openModal(wk, di, hour, dates[di]);
+            openModal(wk, di, slot, date);
           });
 
           grid.appendChild(cell);
@@ -634,34 +938,68 @@
       const grid = document.getElementById('publicGrid');
       grid.innerHTML = '';
 
+      const baseSlots = getBaseSlots(wk, dates);
+      const baseMin   = Math.min(...[blockMins, ...dates.map(d => getDayBlockMins(wk, fmtISO(d)))]);
+
+      grid.style.gridTemplateRows = `auto repeat(${baseSlots.length}, minmax(54px, auto))`;
+
       const corner = document.createElement('div');
       corner.className = 'cell-header';
-      corner.style.display = 'flex';
-      corner.style.alignItems = 'center';
-      corner.style.justifyContent = 'center';
+      corner.style.cssText = 'display:flex;align-items:center;justify-content:center;';
       corner.textContent = '시간';
       grid.appendChild(corner);
 
       dates.forEach((date, i) => {
+        const iso     = fmtISO(date);
+        const holiday = isHoliday(date);
         const el = document.createElement('div');
-        el.className = 'cell-header';
-        el.innerHTML = `<div class="day-name">${DAYS_KO[i]}</div><div class="day-date">${fmt(date)}</div>`;
+        el.className = `cell-header${holiday ? ' is-holiday' : ''}`;
+        el.innerHTML = `
+          <div class="day-name">${DAYS_KO[i]}</div>
+          <div class="day-date">${fmt(date)}</div>
+          ${holiday ? '<div><span class="holiday-badge">휴일</span></div>' : ''}
+        `;
         grid.appendChild(el);
       });
 
-      HOURS.forEach(hour => {
+      baseSlots.forEach((bSlot, rowIdx) => {
         const tl = document.createElement('div');
         tl.className = 'time-cell';
-        tl.textContent = `${hour}:00`;
+        tl.style.gridColumn = '1';
+        tl.style.gridRow = `${rowIdx + 2}`;
+        tl.textContent = bSlot.label;
         grid.appendChild(tl);
+      });
 
-        dates.forEach((_, di) => {
-          const cap    = getCap(wk, di, hour);
-          const blocked = getBlocked(wk, di, hour);
+      dates.forEach((date, di) => {
+        const iso     = fmtISO(date);
+        const holiday = isHoliday(date);
+        const dayBMin = getDayBlockMins(wk, iso);
+        const daySlots = makeSlots(dayBMin);
+        const spanRows = dayBMin / baseMin;
+
+        daySlots.forEach((slot, slotIdx) => {
+          const startRowIdx = slotIdx * spanRows;
+          const cell = document.createElement('div');
+          cell.style.gridColumn = `${di + 2}`;
+          cell.style.gridRow    = `${startRowIdx + 2} / span ${spanRows}`;
+
+          if (holiday) {
+            if (slotIdx === 0) {
+              cell.className = 'pub-slot s-holiday';
+              cell.innerHTML = `<div class="pub-icon">🏖</div><div class="pub-text">휴일</div>`;
+            } else {
+              cell.className = 'pub-slot s-gap';
+            }
+            grid.appendChild(cell);
+            return;
+          }
+
+          const cap    = getCap(wk, di, slot.key, iso);
+          const blocked = getBlocked(wk, di, slot.key);
           const avail  = Math.max(0, cap - blocked);
           const state  = slotState(avail, cap);
 
-          const cell = document.createElement('div');
           cell.className = `pub-slot ${state}`;
 
           if (state === 's-blocked') {
@@ -679,13 +1017,13 @@
     }
 
     // ─────────────────────────────────────────────
-    // Modal
+    // Slot capacity modal
     // ─────────────────────────────────────────────
-    function openModal(wk, di, hour, date) {
-      pendingModal = { wk, di, hour };
-      const cap = getCap(wk, di, hour);
+    function openModal(wk, di, slot, date) {
+      pendingModal = { wk, di, slotKey: slot.key };
+      const cap = getCap(wk, di, slot.key, fmtISO(date));
       document.getElementById('modalDesc').innerHTML =
-        `<strong>${fmt(date)} (${DAYS_KO[di]}) ${hour}:00</strong> 슬롯의 통역사 수를 설정합니다.<br>현재: ${cap}명`;
+        `<strong>${fmt(date)} (${DAYS_KO[di]}) ${slot.label}</strong> 슬롯의 통역사 수를 설정합니다.<br>현재: ${cap}명`;
       document.getElementById('modalInput').value = cap;
       document.getElementById('modalOverlay').classList.remove('hidden');
       setTimeout(() => document.getElementById('modalInput').select(), 60);
@@ -703,10 +1041,67 @@
         showToast('1~20 사이의 숫자를 입력해주세요.');
         return;
       }
-      setCapacity(pendingModal.wk, pendingModal.di, pendingModal.hour, val);
+      setCapacity(pendingModal.wk, pendingModal.di, pendingModal.slotKey, val);
       closeModal();
       render();
       showToast('슬롯 용량이 변경되었습니다.');
+    }
+
+    // ─────────────────────────────────────────────
+    // Day settings modal
+    // ─────────────────────────────────────────────
+    function openDayModal(wk, di, date) {
+      pendingDayModal = { wk, di, date, iso: fmtISO(date) };
+      const ds = getDaySettings(wk, fmtISO(date));
+
+      document.getElementById('dayModalTitle').textContent = `${fmt(date)} (${DAYS_KO[di]}) 날짜 설정`;
+      document.getElementById('dayModalDesc').innerHTML =
+        `이 날짜만의 시간 블록 크기와 기본 통역사 수를 설정합니다.<br>비워두면 전역 기본값을 사용합니다.`;
+
+      const blockSel = document.getElementById('dayBlockSelect');
+      blockSel.value = ds.blockMins ? String(ds.blockMins) : '';
+
+      const capIn = document.getElementById('dayCapInput');
+      capIn.value = ds.defaultCap ? String(ds.defaultCap) : '';
+      capIn.placeholder = `전역 기본값 (${defaultCapacity}명)`;
+
+      document.getElementById('dayModalOverlay').classList.remove('hidden');
+    }
+
+    function closeDayModal() {
+      pendingDayModal = null;
+      document.getElementById('dayModalOverlay').classList.add('hidden');
+    }
+
+    function confirmDayModal() {
+      if (!pendingDayModal) return;
+      const { wk, iso } = pendingDayModal;
+
+      const bVal = document.getElementById('dayBlockSelect').value;
+      const cRaw = document.getElementById('dayCapInput').value.trim();
+      const cVal = cRaw === '' ? null : parseInt(cRaw);
+
+      if (cVal !== null && (isNaN(cVal) || cVal < 1 || cVal > 20)) {
+        showToast('통역사 수는 1~20 사이여야 합니다.');
+        return;
+      }
+
+      const settings = {};
+      if (bVal) settings.blockMins = parseInt(bVal);
+      if (cVal !== null) settings.defaultCap = cVal;
+
+      setDaySettings(wk, iso, Object.keys(settings).length ? settings : null);
+      closeDayModal();
+      render();
+      showToast('날짜 설정이 저장되었습니다.');
+    }
+
+    function resetDayModal() {
+      if (!pendingDayModal) return;
+      setDaySettings(pendingDayModal.wk, pendingDayModal.iso, null);
+      closeDayModal();
+      render();
+      showToast('날짜 설정이 초기화되었습니다.');
     }
 
     // ─────────────────────────────────────────────
@@ -715,31 +1110,21 @@
     async function exportImage(type) {
       const wk    = getWeekKey(currentWeek);
       const dates = getWeekDates(currentWeek);
-
       document.getElementById('exportLoading').classList.remove('hidden');
-
       const snap = buildExportDOM(type, wk, dates);
       document.body.appendChild(snap);
-
       try {
         const canvas = await html2canvas(snap, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          logging: false,
+          scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
         });
-
         const wkStr   = weekRangeFilename(dates);
         const typeStr = type === 'admin' ? '관리자뷰' : '공개뷰';
-        const filename = `schedule_${wkStr}_${typeStr}.png`;
-
         const link = document.createElement('a');
-        link.download = filename;
+        link.download = `schedule_${wkStr}_${typeStr}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
-        showToast(`이미지 저장: ${filename}`);
+        showToast(`이미지 저장: schedule_${wkStr}_${typeStr}.png`);
       } catch (err) {
-        console.error(err);
         showToast('이미지 저장 중 오류가 발생했습니다.');
       } finally {
         document.body.removeChild(snap);
@@ -748,7 +1133,7 @@
     }
 
     function buildExportDOM(type, wk, dates) {
-      const isAdmin = type === 'admin';
+      const isAdmin  = type === 'admin';
       const headerBg = isAdmin ? '#1a365d' : '#15803d';
       const title    = isAdmin ? '관리자 스케줄 현황' : '통역 서비스 예약 가능 일정';
       const badge    = isAdmin
@@ -756,13 +1141,7 @@
         : '';
 
       const wrap = document.createElement('div');
-      wrap.style.cssText = `
-        position: fixed; left: -9999px; top: 0;
-        width: 860px;
-        background: white;
-        font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-      `;
-
+      wrap.style.cssText = `position:fixed;left:-9999px;top:0;width:880px;background:white;font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;`;
       wrap.innerHTML = `
         <div style="background:${headerBg};color:white;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;">
           <div>
@@ -779,65 +1158,106 @@
           </div>
         </div>
       `;
-
       return wrap;
     }
 
     function buildExportTable(type, wk, dates) {
-      const isAdmin = type === 'admin';
+      const isAdmin   = type === 'admin';
+      const baseSlots = getBaseSlots(wk, dates);
+      const baseMin   = Math.min(...[blockMins, ...dates.map(d => getDayBlockMins(wk, fmtISO(d)))]);
 
+      // We build a plain table but handle row spans per cell
       let html = `<table style="border-collapse:separate;border-spacing:4px;width:100%;table-layout:fixed;">`;
 
-      // header
+      // header row
       html += `<thead><tr>`;
       html += `<th style="width:72px;padding:10px 6px;text-align:center;background:#f7fafc;font-size:12px;color:#4a5568;border-radius:6px;">시간</th>`;
       dates.forEach((date, i) => {
-        html += `<th style="padding:10px 6px;text-align:center;background:#f7fafc;border-radius:6px;">
-          <div style="font-size:15px;font-weight:700;color:#2d3748;">${DAYS_KO[i]}</div>
-          <div style="font-size:11px;color:#718096;margin-top:2px;">${fmt(date)}</div>
+        const iso     = fmtISO(date);
+        const holiday = isHoliday(date);
+        const ds      = getDaySettings(wk, iso);
+        const custParts = [];
+        if (ds.blockMins)  custParts.push(BLOCK_LABELS[ds.blockMins]);
+        if (ds.defaultCap) custParts.push(`기본 ${ds.defaultCap}명`);
+        const hdrBg   = holiday ? '#fff8f0' : (custParts.length ? '#eef2ff' : '#f7fafc');
+        const nameClr = holiday ? '#c2410c' : (custParts.length ? '#3730a3' : '#2d3748');
+        const dateClr = holiday ? '#f97316' : '#718096';
+        const badge   = holiday
+          ? `<div style="margin-top:3px;"><span style="background:#f97316;color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;">휴일</span></div>`
+          : (custParts.length ? `<div style="font-size:9px;color:#4f46e5;margin-top:2px;">${custParts.join(' · ')}</div>` : '');
+        html += `<th style="padding:10px 6px;text-align:center;background:${hdrBg};border-radius:6px;${holiday ? 'border:2px solid #fed7aa;' : custParts.length ? 'border:2px solid #c7d2fe;' : ''}">
+          <div style="font-size:15px;font-weight:700;color:${nameClr};">${DAYS_KO[i]}</div>
+          <div style="font-size:11px;color:${dateClr};margin-top:2px;">${fmt(date)}</div>
+          ${badge}
         </th>`;
       });
       html += `</tr></thead><tbody>`;
 
-      // rows
-      HOURS.forEach(hour => {
-        html += `<tr>`;
-        html += `<td style="padding:8px 6px;text-align:center;font-size:12px;font-weight:600;color:#4a5568;background:#fafafa;border-radius:6px;">${hour}:00</td>`;
+      // For the table we need to track which cells have been emitted for each day
+      // Use a map: di -> remaining skip rows
+      const skipRows = dates.map(() => 0);
 
-        dates.forEach((_, di) => {
-          const cap     = getCap(wk, di, hour);
-          const blocked = getBlocked(wk, di, hour);
+      baseSlots.forEach(bSlot => {
+        html += `<tr>`;
+        html += `<td style="padding:8px 6px;text-align:center;font-size:12px;font-weight:600;color:#4a5568;background:#fafafa;border-radius:6px;">${bSlot.label}</td>`;
+
+        dates.forEach((date, di) => {
+          const iso     = fmtISO(date);
+          const holiday = isHoliday(date);
+
+          if (skipRows[di] > 0) {
+            skipRows[di]--;
+            return; // cell spanned by previous row
+          }
+
+          const dayBMin  = getDayBlockMins(wk, iso);
+          const spanRows = dayBMin / baseMin;
+          skipRows[di] = spanRows - 1;
+          const rsAttr   = spanRows > 1 ? ` rowspan="${spanRows}"` : '';
+          const minH     = `min-height:${54 * spanRows}px;`;
+
+          if (holiday) {
+            html += `<td${rsAttr} style="padding:8px 6px;text-align:center;background:#f5f5f5;color:#b0b8c1;border:2px solid #e2e8f0;border-radius:8px;vertical-align:middle;${minH}"><div style="font-size:12px;">휴일</div></td>`;
+            return;
+          }
+
+          // find slot key matching bSlot time
+          const slot = makeSlots(dayBMin).find(s => s.key === bSlot.key) ||
+                       makeSlots(dayBMin).find(s => {
+                         const sMin = parseInt(s.key.slice(0,2))*60 + parseInt(s.key.slice(2));
+                         const bMin = parseInt(bSlot.key.slice(0,2))*60 + parseInt(bSlot.key.slice(2));
+                         return sMin <= bMin && bMin < sMin + dayBMin;
+                       });
+
+          if (!slot) {
+            html += `<td${rsAttr} style="background:transparent;border:none;"></td>`;
+            return;
+          }
+
+          const cap     = getCap(wk, di, slot.key, iso);
+          const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
           const state   = slotState(avail, cap);
 
           let bg, color, border, content;
-
           if (isAdmin) {
             if (state === 's-available') { bg = '#f0fdf4'; color = '#15803d'; border = '#bbf7d0'; }
-            else if (state === 's-partial')   { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
-            else                              { bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; }
-
+            else if (state === 's-partial') { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
+            else                           { bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; }
             const stateText = state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`;
-            content = `
-              <div style="font-size:26px;font-weight:800;line-height:1;">${avail}</div>
+            content = `<div style="font-size:22px;font-weight:800;line-height:1;">${avail}</div>
               <div style="font-size:10px;opacity:0.6;margin-top:2px;">/ ${cap} 슬롯</div>
-              <div style="font-size:10px;font-weight:600;margin-top:3px;">${stateText}</div>
-            `;
+              <div style="font-size:10px;font-weight:600;margin-top:3px;">${stateText}</div>`;
           } else {
             if (state === 's-available') { bg = '#f0fdf4'; color = '#15803d'; border = '#bbf7d0'; }
-            else if (state === 's-partial')   { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
-            else                              { bg = '#f8fafc'; color = '#94a3b8'; border = '#e2e8f0'; }
-
+            else if (state === 's-partial') { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
+            else                           { bg = '#f8fafc'; color = '#94a3b8'; border = '#e2e8f0'; }
             content = state === 's-blocked'
-              ? `<div style="font-size:18px;line-height:1;">✕</div><div style="font-size:11px;margin-top:4px;font-weight:600;">예약 불가</div>`
-              : `<div style="font-size:18px;line-height:1;">✓</div><div style="font-size:13px;font-weight:700;margin-top:3px;">${avail}자리</div><div style="font-size:10px;margin-top:2px;">예약 가능</div>`;
+              ? `<div style="font-size:16px;">✕</div><div style="font-size:11px;font-weight:600;margin-top:4px;">예약 불가</div>`
+              : `<div style="font-size:16px;">✓</div><div style="font-size:13px;font-weight:700;margin-top:3px;">${avail}자리</div><div style="font-size:10px;margin-top:2px;">예약 가능</div>`;
           }
 
-          html += `
-            <td style="padding:8px 6px;text-align:center;background:${bg};color:${color};
-                        border:2px solid ${border};border-radius:8px;vertical-align:middle;min-height:68px;">
-              ${content}
-            </td>`;
+          html += `<td${rsAttr} style="padding:8px 6px;text-align:center;background:${bg};color:${color};border:2px solid ${border};border-radius:8px;vertical-align:middle;${minH}">${content}</td>`;
         });
 
         html += `</tr>`;
@@ -854,20 +1274,20 @@
             { bg: '#f0fdf4', border: '#bbf7d0', label: '전체 가능' },
             { bg: '#fff7ed', border: '#fed7aa', label: '일부 예약됨' },
             { bg: '#fef2f2', border: '#fecaca', label: '전체 마감' },
+            { bg: '#f5f5f5', border: '#e2e8f0', label: '휴일' },
           ]
         : [
             { bg: '#f0fdf4', border: '#bbf7d0', label: '예약 가능' },
             { bg: '#fff7ed', border: '#fed7aa', label: '일부 가능' },
-            { bg: '#f8fafc',  border: '#e2e8f0', label: '예약 불가' },
+            { bg: '#f8fafc', border: '#e2e8f0', label: '예약 불가' },
+            { bg: '#f5f5f5', border: '#e2e8f0', label: '휴일' },
           ];
-
       const dots = items.map(it =>
         `<div style="display:flex;align-items:center;gap:7px;font-size:12px;color:#4a5568;">
           <div style="width:13px;height:13px;background:${it.bg};border:2px solid ${it.border};border-radius:3px;flex-shrink:0;"></div>
           ${it.label}
         </div>`
       ).join('');
-
       return `
         <div style="margin-top:14px;padding:10px 16px;background:#f8fafc;border-radius:8px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;">
           <div style="font-size:12px;font-weight:600;color:#4a5568;">범례</div>
@@ -889,6 +1309,29 @@
     }
 
     // ─────────────────────────────────────────────
+    // Init selects
+    // ─────────────────────────────────────────────
+    function initSelects() {
+      document.getElementById('blockMinsSelect').value = String(blockMins);
+
+      const startSel = document.getElementById('startHourSelect');
+      for (let h = 7; h <= 12; h++) {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = `${h}:00`;
+        if (h === startHour) opt.selected = true;
+        startSel.appendChild(opt);
+      }
+
+      const endSel = document.getElementById('endHourSelect');
+      for (let h = 13; h <= 23; h++) {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = `${h}:00`;
+        if (h === endHour) opt.selected = true;
+        endSel.appendChild(opt);
+      }
+    }
+
+    // ─────────────────────────────────────────────
     // Event listeners
     // ─────────────────────────────────────────────
     document.getElementById('prevWeek').addEventListener('click', () => {
@@ -896,7 +1339,6 @@
       currentWeek.setDate(currentWeek.getDate() - 7);
       render();
     });
-
     document.getElementById('nextWeek').addEventListener('click', () => {
       currentWeek = new Date(currentWeek);
       currentWeek.setDate(currentWeek.getDate() + 7);
@@ -906,9 +1348,25 @@
     document.getElementById('capMinus').addEventListener('click', () => {
       if (defaultCapacity > 1) { defaultCapacity--; save(); render(); }
     });
-
     document.getElementById('capPlus').addEventListener('click', () => {
       if (defaultCapacity < 20) { defaultCapacity++; save(); render(); }
+    });
+
+    document.getElementById('blockMinsSelect').addEventListener('change', e => {
+      blockMins = parseInt(e.target.value);
+      save(); render();
+      showToast(`기본 시간 블록: ${e.target.options[e.target.selectedIndex].text}`);
+    });
+
+    document.getElementById('startHourSelect').addEventListener('change', e => {
+      const v = parseInt(e.target.value);
+      if (v >= endHour) { showToast('시작 시간은 종료 시간보다 앞이어야 합니다.'); e.target.value = String(startHour); return; }
+      startHour = v; save(); render();
+    });
+    document.getElementById('endHourSelect').addEventListener('change', e => {
+      const v = parseInt(e.target.value);
+      if (v <= startHour) { showToast('종료 시간은 시작 시간보다 뒤여야 합니다.'); e.target.value = String(endHour); return; }
+      endHour = v; save(); render();
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -932,6 +1390,7 @@
       }
     });
 
+    // Slot capacity modal
     document.getElementById('modalCancel').addEventListener('click', closeModal);
     document.getElementById('modalConfirm').addEventListener('click', confirmModal);
     document.getElementById('modalOverlay').addEventListener('click', e => {
@@ -942,9 +1401,18 @@
       if (e.key === 'Escape') closeModal();
     });
 
+    // Day settings modal
+    document.getElementById('dayModalCancel').addEventListener('click', closeDayModal);
+    document.getElementById('dayModalConfirm').addEventListener('click', confirmDayModal);
+    document.getElementById('dayModalReset').addEventListener('click', resetDayModal);
+    document.getElementById('dayModalOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('dayModalOverlay')) closeDayModal();
+    });
+
     // ─────────────────────────────────────────────
     // Init
     // ─────────────────────────────────────────────
+    initSelects();
     render();
   </script>
 </body>
