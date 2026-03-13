@@ -302,6 +302,21 @@
     .slot:hover .edit-btn { opacity: 1; }
     .edit-btn:hover { background: rgba(0,0,0,0.18); }
 
+    /* ── Resize Handle ── */
+    .resize-handle {
+      position: absolute;
+      bottom: 3px; left: 18%; right: 18%;
+      height: 5px;
+      cursor: ns-resize;
+      background: rgba(0,0,0,0.13);
+      border-radius: 3px;
+      transition: background 0.15s, height 0.1s;
+      z-index: 2;
+    }
+    .resize-handle:hover { background: rgba(0,0,0,0.32); height: 6px; }
+    body.slot-resizing { cursor: ns-resize !important; user-select: none !important; }
+    body.slot-resizing .slot { transition: none !important; }
+
     /* ── Public Slot ── */
     .pub-slot {
       padding: 8px 6px;
@@ -386,7 +401,50 @@
     .btn-red:hover   { background: #b91c1c; }
     .btn-ghost { background: #f7fafc; color: #4a5568; border: 1px solid #e2e8f0; }
     .btn-ghost:hover { background: #eef2f7; }
+    .btn-teal  { background: #0d7377; color: white; }
+    .btn-teal:hover  { background: #0a5f63; box-shadow: 0 2px 8px rgba(13,115,119,0.3); }
     .action-spacer { flex: 1; }
+
+    /* ── Share URL box ── */
+    .share-url-box {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 12px;
+    }
+    .share-url-box input[type=text] {
+      flex: 1;
+      padding: 9px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 9px;
+      font-size: 12px;
+      color: #4a5568;
+      outline: none;
+      background: #f7fafc;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .share-notice {
+      font-size: 11px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;
+    }
+    .share-modal-box { width: 480px; }
+
+    /* ── Shared view banner ── */
+    .shared-banner {
+      background: linear-gradient(135deg, #0d7377, #14a8ad);
+      color: white;
+      padding: 10px 28px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .shared-banner.hidden { display: none; }
+    .shared-banner .saved-at {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.85;
+    }
 
     /* ── Modal ── */
     .modal-overlay {
@@ -479,9 +537,15 @@
   <header class="app-header">
     <div>
       <h1>통역 서비스 스케줄러</h1>
-      <div class="subtitle">관리자용 주간 스케줄 관리 · 클릭으로 블록 설정 · PNG 이미지 출력</div>
+      <div class="subtitle" id="headerSubtitle">관리자용 주간 스케줄 관리 · 클릭으로 블록 설정 · PNG 이미지 출력</div>
     </div>
   </header>
+
+  <!-- Shared View Banner (shown when loading from URL) -->
+  <div class="shared-banner hidden" id="sharedBanner">
+    📅 관리자가 공유한 스케줄입니다 (읽기 전용)
+    <span class="saved-at" id="sharedSavedAt"></span>
+  </div>
 
   <!-- Controls -->
   <div class="controls-bar">
@@ -532,7 +596,7 @@
         <div class="legend-item"><div class="ldot partial"></div> 일부 예약됨</div>
         <div class="legend-item"><div class="ldot blocked-a"></div> 전체 마감</div>
         <div class="legend-item"><div class="ldot holiday"></div> 휴일</div>
-        <div class="legend-hint">슬롯 클릭 → 예약 +1 &nbsp;|&nbsp; ✎ → 셀 용량 변경 &nbsp;|&nbsp; ⚙ → 날짜별 설정 &nbsp;|&nbsp; 🏖 → 휴일 토글</div>
+        <div class="legend-hint">슬롯 클릭 → 예약 +1 &nbsp;|&nbsp; ✎ → 셀 용량 변경 &nbsp;|&nbsp; ⚙ → 날짜별 설정 &nbsp;|&nbsp; 🏖 → 휴일 토글 &nbsp;|&nbsp; ↕ 하단 핸들 드래그 → 슬롯 크기 조절</div>
       </div>
     </div>
     <div id="publicView" class="schedule-wrapper" style="display:none;">
@@ -550,6 +614,7 @@
   <div class="action-bar">
     <button class="btn btn-navy" id="exportAdmin">📷 관리자 뷰 이미지 저장</button>
     <button class="btn btn-green" id="exportPublic">📷 공개 뷰 이미지 저장</button>
+    <button class="btn btn-teal" id="shareLink">🔗 공유 링크 생성</button>
     <div class="action-spacer"></div>
     <button class="btn btn-red" id="resetWeek">🗑 이번 주 초기화</button>
   </div>
@@ -598,6 +663,22 @@
     </div>
   </div>
 
+  <!-- Share Link Modal -->
+  <div class="modal-overlay hidden" id="shareLinkOverlay">
+    <div class="modal-box share-modal-box">
+      <h3>🔗 공유 링크 생성</h3>
+      <div class="modal-desc">아래 링크를 복사하여 공유하세요. 링크를 열면 현재 저장된 스케줄을 공개 뷰로 볼 수 있습니다.</div>
+      <div class="share-url-box">
+        <input type="text" id="shareUrlInput" readonly placeholder="링크 생성 중..." />
+        <button class="btn btn-navy" id="copyShareUrl">복사</button>
+      </div>
+      <div class="share-notice">※ 스케줄이 변경되면 새 링크를 다시 생성해주세요. 링크에는 현재까지 저장된 모든 주차 데이터가 포함됩니다.</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="shareLinkClose">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Export Loading -->
   <div class="export-loading hidden" id="exportLoading">이미지 생성 중...</div>
   <!-- Toast -->
@@ -610,6 +691,7 @@
     // ─────────────────────────────────────────────
     const DAYS_KO = ['월', '화', '수', '목', '금'];
     const BLOCK_LABELS = { 30: '30분', 60: '1시간', 90: '1시간 30분', 120: '2시간' };
+    const BASE_MINS = 30; // minimum slot unit & grid row size
 
     // ─────────────────────────────────────────────
     // State
@@ -621,6 +703,7 @@
     let activeTab       = 'admin';
     let pendingModal    = null;
     let pendingDayModal = null;
+    let dragState       = null;
 
     // Global schedule settings (defaults)
     let blockMins = parseInt(localStorage.getItem('sc_blockMins')  || '60');
@@ -657,6 +740,45 @@
     }
 
     // ─────────────────────────────────────────────
+    // Slot Defs (per-day custom duration array)
+    // weekData[wk].slotDefs[dateISO] = [60, 90, 30, ...]
+    // ─────────────────────────────────────────────
+    function getSlotDefs(wk, dateISO) {
+      const totalMins = (endHour - startHour) * 60;
+      const stored = getWeekObj(wk).slotDefs?.[dateISO];
+      if (stored && stored.reduce((a, b) => a + b, 0) === totalMins) return [...stored];
+      const bMins = getDayBlockMins(wk, dateISO);
+      return Array(Math.floor(totalMins / bMins)).fill(bMins);
+    }
+
+    function setSlotDefs(wk, dateISO, defs) {
+      const obj = getWeekObj(wk);
+      if (!obj.slotDefs) obj.slotDefs = {};
+      const bMins = getDayBlockMins(wk, dateISO);
+      const totalMins = (endHour - startHour) * 60;
+      const isDefault = defs.length === Math.floor(totalMins / bMins) && defs.every(d => d === bMins);
+      if (isDefault) {
+        delete obj.slotDefs[dateISO];
+      } else {
+        obj.slotDefs[dateISO] = defs;
+      }
+    }
+
+    // Returns [{key, label, startMin, durationMins, slotIdx}, ...]
+    function getDaySlotsFull(wk, dateISO) {
+      const defs = getSlotDefs(wk, dateISO);
+      let curMin = startHour * 60;
+      return defs.map((dur, slotIdx) => {
+        const h   = Math.floor(curMin / 60);
+        const m   = curMin % 60;
+        const key = `${String(h).padStart(2,'0')}${String(m).padStart(2,'0')}`;
+        const slot = { key, label: `${h}:${String(m).padStart(2,'0')}`, startMin: curMin, durationMins: dur, slotIdx };
+        curMin += dur;
+        return slot;
+      });
+    }
+
+    // ─────────────────────────────────────────────
     // Time slot helpers
     // ─────────────────────────────────────────────
     /**
@@ -678,18 +800,9 @@
       return slots;
     }
 
-    /**
-     * Base (finest) slots = slots at the smallest blockMins across all days this week.
-     * We need this to build the unified time axis.
-     */
-    function getBaseSlots(wk, dates) {
-      const mins = [blockMins];
-      dates.forEach(d => {
-        const ds = getDaySettings(wk, fmtISO(d));
-        if (ds.blockMins) mins.push(ds.blockMins);
-      });
-      const finest = Math.min(...mins);
-      return makeSlots(finest);
+    // Base time axis: always 30-min rows to support variable slot sizes
+    function getBaseSlots() {
+      return makeSlots(BASE_MINS);
     }
 
     // ─────────────────────────────────────────────
@@ -777,6 +890,136 @@
 
     function resetWeekData(wk) { delete weekData[wk]; save(); }
 
+    // ─────────────────────────────────────────────
+    // Slot Resize (drag handle)
+    // ─────────────────────────────────────────────
+    function startSlotResize(e, wk, di, dateISO, slotIdx) {
+      const cell        = e.target.closest('.slot');
+      const cellRect    = cell.getBoundingClientRect();
+      const defs        = getSlotDefs(wk, dateISO);
+      const rowHeightPx = cellRect.height / (defs[slotIdx] / BASE_MINS);
+
+      dragState = {
+        wk, di, dateISO, slotIdx,
+        startY:       e.clientY,
+        origDefs:     [...defs],
+        rowHeightPx,
+        lastSnapDelta: 0
+      };
+      document.body.classList.add('slot-resizing');
+    }
+
+    function onResizeDrag(e) {
+      if (!dragState) return;
+      const { wk, dateISO, slotIdx, startY, origDefs, rowHeightPx } = dragState;
+
+      const deltaY      = e.clientY - startY;
+      const snapUnits   = Math.round(deltaY / rowHeightPx);
+      const snapMins    = snapUnits * BASE_MINS;
+      if (snapMins === dragState.lastSnapDelta) return;
+      dragState.lastSnapDelta = snapMins;
+
+      const nextIdx = slotIdx + 1;
+      if (nextIdx >= origDefs.length) return;
+
+      let newCur  = origDefs[slotIdx] + snapMins;
+      let newNext = origDefs[nextIdx] - snapMins;
+
+      if (newCur < BASE_MINS)  { newNext = origDefs[slotIdx] + origDefs[nextIdx] - BASE_MINS; newCur  = BASE_MINS; }
+      if (newNext < BASE_MINS) { newCur  = origDefs[slotIdx] + origDefs[nextIdx] - BASE_MINS; newNext = BASE_MINS; }
+
+      const newDefs = [...origDefs];
+      newDefs[slotIdx]  = newCur;
+      newDefs[nextIdx]  = newNext;
+
+      setSlotDefs(wk, dateISO, newDefs);
+      renderAdminGrid(getWeekKey(currentWeek), getWeekDates(currentWeek));
+    }
+
+    function endSlotResize() {
+      if (!dragState) return;
+      document.body.classList.remove('slot-resizing');
+      save();
+      renderPublicGrid(getWeekKey(currentWeek), getWeekDates(currentWeek));
+      const defs = getSlotDefs(dragState.wk, dragState.dateISO);
+      const cur  = defs[dragState.slotIdx];
+      showToast(`슬롯 크기 조정: ${BLOCK_LABELS[cur] || cur + '분'}`);
+      dragState = null;
+    }
+
+    // ─────────────────────────────────────────────
+    // Share Link (URL Hash encoding)
+    // ─────────────────────────────────────────────
+    function generateShareURL() {
+      const state = {
+        weekData,
+        defaultCapacity,
+        holidays: [...holidays],
+        blockMins,
+        startHour,
+        endHour,
+        savedAt: new Date().toISOString()
+      };
+      const json    = JSON.stringify(state);
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      return `${location.origin}${location.pathname}#share=${encoded}`;
+    }
+
+    function openShareModal() {
+      const url = generateShareURL();
+      document.getElementById('shareUrlInput').value = url;
+      document.getElementById('shareLinkOverlay').classList.remove('hidden');
+    }
+
+    function closeShareModal() {
+      document.getElementById('shareLinkOverlay').classList.add('hidden');
+    }
+
+    function copyShareURL() {
+      const input = document.getElementById('shareUrlInput');
+      input.select();
+      const text = input.value;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('링크가 클립보드에 복사되었습니다!');
+          closeShareModal();
+        }).catch(() => {
+          document.execCommand('copy');
+          showToast('링크가 복사되었습니다!');
+          closeShareModal();
+        });
+      } else {
+        document.execCommand('copy');
+        showToast('링크가 복사되었습니다!');
+        closeShareModal();
+      }
+    }
+
+    // Returns true if page was loaded with a share hash
+    function loadFromHash() {
+      const hash = location.hash;
+      if (!hash.startsWith('#share=')) return false;
+      try {
+        const encoded = hash.slice(7);
+        const json    = decodeURIComponent(escape(atob(encoded)));
+        const state   = JSON.parse(json);
+        weekData          = state.weekData          || {};
+        defaultCapacity   = state.defaultCapacity   || 2;
+        holidays          = new Set(state.holidays  || []);
+        blockMins         = state.blockMins         || 60;
+        startHour         = state.startHour         || 10;
+        endHour           = state.endHour           || 18;
+        if (state.savedAt) {
+          const d = new Date(state.savedAt);
+          document.getElementById('sharedSavedAt').textContent =
+            `저장 시각: ${d.toLocaleDateString('ko-KR')} ${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
     function save() {
       localStorage.setItem('sc_weekData',   JSON.stringify(weekData));
       localStorage.setItem('sc_defaultCap', String(defaultCapacity));
@@ -814,8 +1057,8 @@
       const grid = document.getElementById('adminGrid');
       grid.innerHTML = '';
 
-      const baseSlots = getBaseSlots(wk, dates);
-      const totalRows = baseSlots.length; // data rows (excluding header row)
+      const baseSlots = getBaseSlots();
+      const totalRows = baseSlots.length;
 
       // Set grid rows: 1 header + totalRows data rows
       grid.style.gridTemplateRows = `auto repeat(${totalRows}, minmax(54px, auto))`;
@@ -867,13 +1110,8 @@
         grid.appendChild(el);
       });
 
-      // ── Time axis + cells ──
-      // Time label cells: one per base slot, spanning 1 row each
-      // Day cells: span = dayBlockMins / baseBlockMins rows
-      const baseMin = Math.min(...[blockMins, ...dates.map(d => getDayBlockMins(wk, fmtISO(d)))]);
-
+      // ── Time axis ──
       baseSlots.forEach((bSlot, rowIdx) => {
-        // Time label - grid col 1, row rowIdx+2 (1-indexed, row 1 = header)
         const tl = document.createElement('div');
         tl.className = 'time-cell';
         tl.style.gridColumn = '1';
@@ -882,26 +1120,23 @@
         grid.appendChild(tl);
       });
 
-      // For each day, build slot cells with row spanning
+      // ── Day cells (variable-height via slotDefs) ──
       dates.forEach((date, di) => {
-        const iso     = fmtISO(date);
-        const holiday = isHoliday(date);
-        const dayBMin = getDayBlockMins(wk, iso);
-        const daySlots = makeSlots(dayBMin);
-        const spanRows = dayBMin / baseMin; // how many base rows this day's slot covers
+        const iso      = fmtISO(date);
+        const holiday  = isHoliday(date);
+        const daySlots = getDaySlotsFull(wk, iso);
 
         daySlots.forEach((slot, slotIdx) => {
-          // Find which base row this slot starts at
-          const startRowIdx = (slotIdx * spanRows);
+          const spanRows    = slot.durationMins / BASE_MINS;
+          const startRowIdx = (slot.startMin - startHour * 60) / BASE_MINS;
 
           const cell = document.createElement('div');
-          cell.style.gridColumn = `${di + 2}`; // col 2..6
+          cell.style.gridColumn = `${di + 2}`;
           cell.style.gridRow    = `${startRowIdx + 2} / span ${spanRows}`;
 
           if (holiday) {
-            cell.className = 'slot s-holiday';
+            cell.className = slotIdx === 0 ? 'slot s-holiday' : 'slot s-gap';
             if (slotIdx === 0) cell.innerHTML = `<div class="slot-text">휴일</div>`;
-            else cell.className = 'slot s-gap';
             grid.appendChild(cell);
             return;
           }
@@ -910,6 +1145,7 @@
           const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
           const state   = slotState(avail, cap);
+          const isLast  = slotIdx === daySlots.length - 1;
 
           cell.className = `slot ${state}`;
           cell.innerHTML = `
@@ -917,10 +1153,11 @@
             <div class="slot-num">${avail}</div>
             <div class="slot-cap">/ ${cap} 슬롯</div>
             <div class="slot-text">${state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`}</div>
+            ${!isLast ? '<div class="resize-handle"></div>' : ''}
           `;
 
           cell.addEventListener('click', e => {
-            if (e.target.classList.contains('edit-btn')) return;
+            if (e.target.classList.contains('edit-btn') || e.target.classList.contains('resize-handle')) return;
             incrementBlock(wk, di, slot.key, iso);
             render();
           });
@@ -928,6 +1165,13 @@
             e.stopPropagation();
             openModal(wk, di, slot, date);
           });
+          if (!isLast) {
+            cell.querySelector('.resize-handle').addEventListener('mousedown', e => {
+              e.preventDefault();
+              e.stopPropagation();
+              startSlotResize(e, wk, di, iso, slotIdx);
+            });
+          }
 
           grid.appendChild(cell);
         });
@@ -938,8 +1182,7 @@
       const grid = document.getElementById('publicGrid');
       grid.innerHTML = '';
 
-      const baseSlots = getBaseSlots(wk, dates);
-      const baseMin   = Math.min(...[blockMins, ...dates.map(d => getDayBlockMins(wk, fmtISO(d)))]);
+      const baseSlots = getBaseSlots();
 
       grid.style.gridTemplateRows = `auto repeat(${baseSlots.length}, minmax(54px, auto))`;
 
@@ -972,36 +1215,30 @@
       });
 
       dates.forEach((date, di) => {
-        const iso     = fmtISO(date);
-        const holiday = isHoliday(date);
-        const dayBMin = getDayBlockMins(wk, iso);
-        const daySlots = makeSlots(dayBMin);
-        const spanRows = dayBMin / baseMin;
+        const iso      = fmtISO(date);
+        const holiday  = isHoliday(date);
+        const daySlots = getDaySlotsFull(wk, iso);
 
         daySlots.forEach((slot, slotIdx) => {
-          const startRowIdx = slotIdx * spanRows;
+          const spanRows    = slot.durationMins / BASE_MINS;
+          const startRowIdx = (slot.startMin - startHour * 60) / BASE_MINS;
           const cell = document.createElement('div');
           cell.style.gridColumn = `${di + 2}`;
           cell.style.gridRow    = `${startRowIdx + 2} / span ${spanRows}`;
 
           if (holiday) {
-            if (slotIdx === 0) {
-              cell.className = 'pub-slot s-holiday';
-              cell.innerHTML = `<div class="pub-icon">🏖</div><div class="pub-text">휴일</div>`;
-            } else {
-              cell.className = 'pub-slot s-gap';
-            }
+            cell.className = slotIdx === 0 ? 'pub-slot s-holiday' : 'pub-slot s-gap';
+            if (slotIdx === 0) cell.innerHTML = `<div class="pub-icon">🏖</div><div class="pub-text">휴일</div>`;
             grid.appendChild(cell);
             return;
           }
 
-          const cap    = getCap(wk, di, slot.key, iso);
+          const cap     = getCap(wk, di, slot.key, iso);
           const blocked = getBlocked(wk, di, slot.key);
-          const avail  = Math.max(0, cap - blocked);
-          const state  = slotState(avail, cap);
+          const avail   = Math.max(0, cap - blocked);
+          const state   = slotState(avail, cap);
 
           cell.className = `pub-slot ${state}`;
-
           if (state === 's-blocked') {
             cell.innerHTML = `<div class="pub-icon">✕</div><div class="pub-text">예약 불가</div>`;
           } else {
@@ -1163,8 +1400,7 @@
 
     function buildExportTable(type, wk, dates) {
       const isAdmin   = type === 'admin';
-      const baseSlots = getBaseSlots(wk, dates);
-      const baseMin   = Math.min(...[blockMins, ...dates.map(d => getDayBlockMins(wk, fmtISO(d)))]);
+      const baseSlots = getBaseSlots();
 
       // We build a plain table but handle row spans per cell
       let html = `<table style="border-collapse:separate;border-spacing:4px;width:100%;table-layout:fixed;">`;
@@ -1207,30 +1443,20 @@
 
           if (skipRows[di] > 0) {
             skipRows[di]--;
-            return; // cell spanned by previous row
+            return;
           }
 
-          const dayBMin  = getDayBlockMins(wk, iso);
-          const spanRows = dayBMin / baseMin;
-          skipRows[di] = spanRows - 1;
+          const bMinVal  = parseInt(bSlot.key.slice(0,2))*60 + parseInt(bSlot.key.slice(2));
+          const slot     = getDaySlotsFull(wk, iso).find(s => s.startMin === bMinVal);
+          if (!slot) return;
+
+          const spanRows = slot.durationMins / BASE_MINS;
+          skipRows[di]   = spanRows - 1;
           const rsAttr   = spanRows > 1 ? ` rowspan="${spanRows}"` : '';
           const minH     = `min-height:${54 * spanRows}px;`;
 
           if (holiday) {
             html += `<td${rsAttr} style="padding:8px 6px;text-align:center;background:#f5f5f5;color:#b0b8c1;border:2px solid #e2e8f0;border-radius:8px;vertical-align:middle;${minH}"><div style="font-size:12px;">휴일</div></td>`;
-            return;
-          }
-
-          // find slot key matching bSlot time
-          const slot = makeSlots(dayBMin).find(s => s.key === bSlot.key) ||
-                       makeSlots(dayBMin).find(s => {
-                         const sMin = parseInt(s.key.slice(0,2))*60 + parseInt(s.key.slice(2));
-                         const bMin = parseInt(bSlot.key.slice(0,2))*60 + parseInt(bSlot.key.slice(2));
-                         return sMin <= bMin && bMin < sMin + dayBMin;
-                       });
-
-          if (!slot) {
-            html += `<td${rsAttr} style="background:transparent;border:none;"></td>`;
             return;
           }
 
@@ -1379,8 +1605,17 @@
       });
     });
 
+    document.addEventListener('mousemove', onResizeDrag);
+    document.addEventListener('mouseup',   endSlotResize);
+
     document.getElementById('exportAdmin').addEventListener('click',  () => exportImage('admin'));
     document.getElementById('exportPublic').addEventListener('click', () => exportImage('public'));
+    document.getElementById('shareLink').addEventListener('click', openShareModal);
+    document.getElementById('copyShareUrl').addEventListener('click', copyShareURL);
+    document.getElementById('shareLinkClose').addEventListener('click', closeShareModal);
+    document.getElementById('shareLinkOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('shareLinkOverlay')) closeShareModal();
+    });
 
     document.getElementById('resetWeek').addEventListener('click', () => {
       if (confirm('이번 주 스케줄을 모두 초기화하시겠습니까?')) {
@@ -1412,6 +1647,23 @@
     // ─────────────────────────────────────────────
     // Init
     // ─────────────────────────────────────────────
+    const isSharedView = loadFromHash();
+    if (isSharedView) {
+      // Show shared banner
+      document.getElementById('sharedBanner').classList.remove('hidden');
+      // Hide admin-only controls (keep week nav visible)
+      document.querySelector('.capacity-control').style.display  = 'none';
+      document.querySelector('.schedule-settings').style.display = 'none';
+      // Hide tab bar and action bar
+      document.querySelector('.tab-bar').style.display    = 'none';
+      document.querySelector('.action-bar').style.display = 'none';
+      // Switch to public-only view
+      activeTab = 'public';
+      document.getElementById('adminView').style.display  = 'none';
+      document.getElementById('publicView').style.display = 'inline-block';
+      // Update header subtitle
+      document.getElementById('headerSubtitle').textContent = '공유된 스케줄 · 읽기 전용';
+    }
     initSelects();
     render();
   </script>
