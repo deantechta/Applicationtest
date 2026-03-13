@@ -1393,6 +1393,13 @@
             return;
           }
 
+          if (slot.isLunch) {
+            cell.className = 'pub-slot s-lunch';
+            cell.innerHTML = `<div class="pub-icon">🍽</div><div class="pub-text">점심시간</div>`;
+            grid.appendChild(cell);
+            return;
+          }
+
           const cap     = getCap(wk, di, slot.key, iso);
           const blocked = getBlocked(wk, di, slot.key);
           const avail   = Math.max(0, cap - blocked);
