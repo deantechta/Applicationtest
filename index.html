@@ -381,6 +381,7 @@
     .pub-icon  { font-size: 18px; line-height: 1; }
     .pub-count { font-size: 13px; font-weight: 700; }
     .pub-text  { font-size: 10px; }
+    .pub-time  { font-size: 9px; opacity: 0.6; margin-bottom: 2px; letter-spacing: -0.2px; }
 
     /* ── Legend ── */
     .legend {
@@ -924,6 +925,8 @@
     function fmt(d)     { return `${d.getMonth()+1}/${d.getDate()}`; }
     function fmtFull(d) { return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`; }
     function fmtISO(d)  { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+    function minToTime(m) { return `${pad(Math.floor(m/60))}:${pad(m%60)}`; }
+    function slotTimeRange(slot) { return `${minToTime(slot.startMin)}~${minToTime(slot.startMin+slot.durationMins)}`; }
     function pad(n)     { return String(n).padStart(2, '0'); }
 
     function weekRangeLabel(dates) {
@@ -1395,7 +1398,7 @@
 
           if (slot.isLunch) {
             cell.className = 'pub-slot s-lunch';
-            cell.innerHTML = `<div class="pub-icon">🍽</div><div class="pub-text">점심시간</div>`;
+            cell.innerHTML = `<div class="pub-time">${slotTimeRange(slot)}</div><div class="pub-icon">✕</div><div class="pub-text">예약 불가</div>`;
             grid.appendChild(cell);
             return;
           }
@@ -1407,9 +1410,10 @@
 
           cell.className = `pub-slot ${state}`;
           if (state === 's-blocked') {
-            cell.innerHTML = `<div class="pub-icon">✕</div><div class="pub-text">예약 불가</div>`;
+            cell.innerHTML = `<div class="pub-time">${slotTimeRange(slot)}</div><div class="pub-icon">✕</div><div class="pub-text">예약 불가</div>`;
           } else {
             cell.innerHTML = `
+              <div class="pub-time">${slotTimeRange(slot)}</div>
               <div class="pub-icon">✓</div>
               <div class="pub-count">${avail}자리</div>
               <div class="pub-text">예약 가능</div>
