@@ -308,20 +308,22 @@
 
     .edit-btn {
       position: absolute;
-      top: 4px; right: 4px;
-      width: 18px; height: 18px;
-      background: rgba(0,0,0,0.08);
+      top: 6px; right: 6px;
+      width: 34px; height: 34px;
+      background: rgba(100,100,100,0.13);
       border: none;
-      border-radius: 4px;
+      border-radius: 9px;
       cursor: pointer;
-      font-size: 10px;
+      font-size: 17px;
       display: flex; align-items: center; justify-content: center;
-      opacity: 0;
-      transition: opacity 0.15s;
+      opacity: 0.45;
+      transition: opacity 0.15s, background 0.15s, transform 0.1s;
       color: inherit;
+      z-index: 2;
     }
-    .slot:hover .edit-btn { opacity: 1; }
-    .edit-btn:hover { background: rgba(0,0,0,0.18); }
+    .slot:hover .edit-btn { opacity: 1; background: rgba(80,80,80,0.18); }
+    .edit-btn:hover { background: rgba(60,60,60,0.28) !important; opacity: 1 !important; transform: scale(1.08); }
+    .edit-btn:active { transform: scale(0.96); }
 
     /* ── Resize Handle (bottom & top) ── */
     .resize-handle, .resize-handle-top {
@@ -1561,7 +1563,7 @@
           if (state === 's-blocked') cell.title = '더블클릭하여 초기화';
           cell.innerHTML = `
             ${showTopHandle ? '<div class="resize-handle-top"></div>' : ''}
-            <button class="edit-btn" title="슬롯 용량 변경">✎</button>
+            <button class="edit-btn" title="슬롯 통역사 수 변경">✏</button>
             <div class="slot-num">${avail}</div>
             <div class="slot-cap">/ ${cap} 슬롯</div>
             <div class="slot-text">${state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`}</div>
