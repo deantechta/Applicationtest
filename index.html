@@ -302,6 +302,7 @@
     .pub-slot.s-lunch { background: #fef9c3; border-color: #fde047; color: #854d0e; cursor: default; pointer-events: none; }
     .ldot.lunch { background: #fef9c3; border-color: #fde047; }
 
+    .slot-time  { font-size: 9px; opacity: 0.55; margin-bottom: 2px; letter-spacing: -0.2px; }
     .slot-num   { font-size: 20px; font-weight: 800; line-height: 1; }
     .slot-cap   { font-size: 10px; opacity: 0.6; }
     .slot-text  { font-size: 10px; font-weight: 600; margin-top: 1px; }
@@ -1564,6 +1565,7 @@
           cell.innerHTML = `
             ${showTopHandle ? '<div class="resize-handle-top"></div>' : ''}
             <button class="edit-btn" title="슬롯 통역사 수 변경">✏</button>
+            <div class="slot-time">${slotTimeRange(slot)}</div>
             <div class="slot-num">${avail}</div>
             <div class="slot-cap">/ ${cap} 슬롯</div>
             <div class="slot-text">${state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`}</div>
@@ -1937,7 +1939,7 @@
             else if (state === 's-partial') { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
             else                           { bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; }
             const stateText = state === 's-available' ? '전체 가능' : state === 's-blocked' ? '마감' : `${blocked}건 예약`;
-            content = `<div style="font-size:22px;font-weight:800;line-height:1;">${avail}</div>
+            content = `<div style="font-size:9px;opacity:0.55;margin-bottom:2px;letter-spacing:-0.2px;">${slotTimeRange(slot)}</div><div style="font-size:22px;font-weight:800;line-height:1;">${avail}</div>
               <div style="font-size:10px;opacity:0.6;margin-top:2px;">/ ${cap} 슬롯</div>
               <div style="font-size:10px;font-weight:600;margin-top:3px;">${stateText}</div>`;
           } else {
@@ -1945,8 +1947,8 @@
             else if (state === 's-partial') { bg = '#fff7ed'; color = '#c2410c'; border = '#fed7aa'; }
             else                           { bg = '#f8fafc'; color = '#94a3b8'; border = '#e2e8f0'; }
             content = state === 's-blocked'
-              ? `<div style="font-size:16px;">✕</div><div style="font-size:11px;font-weight:600;margin-top:4px;">예약 불가</div>`
-              : `<div style="font-size:16px;">✓</div><div style="font-size:13px;font-weight:700;margin-top:3px;">${avail}자리</div><div style="font-size:10px;margin-top:2px;">예약 가능</div>`;
+              ? `<div style="font-size:9px;opacity:0.55;margin-bottom:2px;letter-spacing:-0.2px;">${slotTimeRange(slot)}</div><div style="font-size:16px;">✕</div><div style="font-size:11px;font-weight:600;margin-top:4px;">예약 불가</div>`
+              : `<div style="font-size:9px;opacity:0.55;margin-bottom:2px;letter-spacing:-0.2px;">${slotTimeRange(slot)}</div><div style="font-size:16px;">✓</div><div style="font-size:13px;font-weight:700;margin-top:3px;">${avail}자리</div><div style="font-size:10px;margin-top:2px;">예약 가능</div>`;
           }
 
           html += `<td${rsAttr} style="padding:8px 6px;text-align:center;background:${bg};color:${color};border:2px solid ${border};border-radius:8px;vertical-align:middle;${minH}">${content}</td>`;
